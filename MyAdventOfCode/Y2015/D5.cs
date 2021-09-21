@@ -1,6 +1,8 @@
 ﻿using MyAdventOfCode.Extensions;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -20,11 +22,9 @@ namespace MyAdventOfCode.Y2015
         [InlineData("jchzalrnumimnmhp", Category.Naughty)]
         [InlineData("haegwjzuvuyypxyu", Category.Naughty)]
         [InlineData("dvszwmarrgswjxmb", Category.Naughty)]
-
-        [InlineData("aeiww", Category.Nice)]
         public void Part_1_Example(string name, Category expected)
         {
-            var categoriser = new Categoriser();
+            var categoriser = Categoriser.CreateForPart1();
             var category = categoriser.Categorise(name);
 
             Assert.Equal(expected, category);
@@ -33,20 +33,68 @@ namespace MyAdventOfCode.Y2015
         [Fact]
         public void Part_1()
         {
-            var categoriser = new Categoriser();
-            var niceCount = Names.Select(name => categoriser.Categorise(name) == Category.Nice);
+            var categoriser = Categoriser.CreateForPart1();
+            var niceCount = Names.Count(name => categoriser.Categorise(name) == Category.Nice);
 
             _output.WriteLine(niceCount);
         }
 
+        [Theory]
+        [InlineData("qjhvhtzxzqqjkmpb", Category.Nice)]
+        [InlineData("xxyxx", Category.Nice)]
+        [InlineData("uurcxstgmygtbstg", Category.Naughty)]
+        [InlineData("ieodomkazucvgmuy", Category.Naughty)]
+        public void Part_2_Example(string name, Category expected)
+        {
+            var categoriser = Categoriser.CreateForPart2();
+            var category = categoriser.Categorise(name);
+
+            Assert.Equal(expected, category);
+        }
+
+        [Fact]
+        public void Part_2()
+        {
+            var categoriser = Categoriser.CreateForPart2();
+            var niceCount = Names.Count(name => categoriser.Categorise(name) == Category.Nice);
+
+            _output.WriteLine(niceCount);
+        }
+
+        /// <summary>
+        /// Used to determine whether a given name is naughty or nice.
+        /// </summary>
         private class Categoriser
         {
-            private readonly ICheck[] _checks = new ICheck[]
+            private readonly ICheck[] _checks;
+
+            /// <summary>
+            /// Constructs the Categoriser with a list of checks to be performed.
+            /// </summary>
+            /// <param name="checks">The checks to be performed to determine whether a name is naughty or nice.</param>
+            public Categoriser(params ICheck[] checks)
             {
-                new VowelCheck(),
-                new ConsecutiveCharacterCheck(),
-                new DisallowedStringCheck()
-            };
+                _checks = checks ?? throw new ArgumentNullException(nameof(checks));
+            }
+
+            /// <summary>
+            /// Creates the Categoriser required for part 1 of <see href="https://adventofcode.com/2015/day/5"/>
+            /// </summary>
+            /// <returns>A newly instantiated Categoriser with the relevant checks to be carried out.</returns>
+            public static Categoriser CreateForPart1()
+                => new Categoriser(
+                    new VowelCheck(),
+                    new ConsecutiveCharacterCheck(),
+                    new DisallowedStringCheck());
+
+            /// <summary>
+            /// Creates the Categoriser required for part 2 of <see href="https://adventofcode.com/2015/day/5"/>
+            /// </summary>
+            /// <returns>A newly instantiated Categoriser with the relevant checks to be carried out.</returns>
+            public static Categoriser CreateForPart2()
+                => new Categoriser(
+                    new GroupedCharactersCheck(2, 2),
+                    new GappedRepititionCheck());
 
             /// <summary>
             /// Checks whether the given name is on the naughty list or the nice list.
@@ -54,13 +102,31 @@ namespace MyAdventOfCode.Y2015
             /// Otherwise it's on the naughty list.
             /// </summary>
             /// <param name="name">The name to be checked</param>
-            /// <returns>A value indicating whether the name is on the naughty list of nice lis.</returns>
+            /// <returns>A value indicating whether the name is on the naughty list of nice list.</returns>
             public Category Categorise(string name)
                 => _checks.Any(c => c.PerformCheck(name) == false)
                 ? Category.Naughty
                 : Category.Nice;
         }
 
+        /// <summary>
+        /// Simple interface that represents a check to be performed.
+        /// </summary>
+        private interface ICheck
+        {
+            bool PerformCheck(string input);
+        }
+
+        /// <summary>
+        /// The category a name may fall into; naughty or nice.
+        /// </summary>
+        public enum Category
+        {
+            Naughty,
+            Nice
+        }
+
+        #region Checks
         /// <summary>
         /// A check to be performed to determine whether or not
         /// an input string matches a set of requirements related to vowels.
@@ -69,7 +135,7 @@ namespace MyAdventOfCode.Y2015
         {
             private readonly char[] _vowels = new[] { 'a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U' };
             private readonly int _requiredVowels = 3;
-            
+
             /// <summary>
             /// Checks if the input string contains 3 or more vowels.
             /// </summary>
@@ -155,22 +221,137 @@ namespace MyAdventOfCode.Y2015
         }
 
         /// <summary>
-        /// Simple interface that represents a check to be performed.
+        /// A check to be performed to determine whether or not 
+        /// an input string contains character repition seperated by a "gap" (i.e. one or more different characters).
         /// </summary>
-        private interface ICheck
+        private class GappedRepititionCheck : ICheck
         {
-            bool PerformCheck(string input);
+            /// <summary>
+            /// The length of the gap between the repeating characters.
+            /// </summary>
+            private int _gapLength = 1;
+
+            /// <summary>
+            /// The number of times each character repitition should occur.
+            /// </summary>
+            private int _repititionCount = 2;
+
+            /// <summary>
+            /// Checks whether the input string contains the relevant "gapped character repititions".
+            /// </summary>
+            /// <param name="input"></param>
+            /// <returns></returns>
+            /// <exception cref="ArgumentNullException">Thrown when <paramref name="input"/> is null</exception>
+            public bool PerformCheck(string input)
+            {
+                if (input == null)
+                    throw new ArgumentNullException(nameof(input));
+
+                var repititionsFound = 0;
+                for (int i = 0; i < input.Length; i++)
+                {
+                    var startLetter = input[i];
+
+                    for (int r = 0; r < _repititionCount; r++)
+                    {
+                        var nextLetterIndex = i + _gapLength + r + 1;
+
+                        if (nextLetterIndex >= input.Length)
+                        {
+                            break;
+                        }
+
+                        var nextLetter = input[nextLetterIndex];
+
+                        if (startLetter != nextLetter)
+                        {
+                            break;
+                        }
+
+                        repititionsFound += 2;
+
+                        if (repititionsFound >= _repititionCount)
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            }
         }
 
         /// <summary>
-        /// The category a name may fall into; naughty or nice.
+        /// A check to be performed to determine whether or not 
+        /// an input string contains groups of characters that occur a specific number of times.
         /// </summary>
-        public enum Category
+        private class GroupedCharactersCheck : ICheck
         {
-            Naughty,
-            Nice
+            /// <summary>
+            /// The length of the group of characters to check for.
+            /// </summary>
+            private readonly int _groupLength;
+
+            /// <summary>
+            /// The minimum number of times the group should occur.
+            /// </summary>
+            private readonly int _groupCountMin;
+
+            public GroupedCharactersCheck(int groupLength, int groupCountMin)
+            {
+                _groupLength = groupLength;
+                _groupCountMin = groupCountMin;
+            }
+
+            /// <summary>
+            /// Checks whether the input string contains the relevant groups of characters.
+            /// </summary>
+            /// <param name="input"></param>
+            /// <returns></returns>
+            /// <exception cref="ArgumentNullException">Thrown when <paramref name="input"/> is null</exception>
+            public bool PerformCheck(string input)
+            {
+                if (input == null)
+                    throw new ArgumentNullException(nameof(input));
+
+                for (int firstStartIndex = 0; firstStartIndex < input.Length; firstStartIndex++)
+                {
+                    var groupsFound = 1;
+
+                    if (firstStartIndex + _groupLength > input.Length)
+                    {
+                        break;
+                    }
+
+                    var group = input.Substring(firstStartIndex, _groupLength);
+
+                    for (int nextStartIndex = firstStartIndex + _groupLength; nextStartIndex < input.Length; nextStartIndex++)
+                    {
+                        if (nextStartIndex + _groupLength > input.Length)
+                        {
+                            break;
+                        }
+
+                        var matchCandidate = input.Substring(nextStartIndex, _groupLength);
+
+                        if (group == matchCandidate)
+                        {
+                            groupsFound++;
+                        }
+                    }
+
+                    if (groupsFound >= _groupCountMin)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
         }
-        
+        #endregion
+
+        #region TestData
         /// <summary>
         /// The names to be categorised as being either naughty or nice.
         /// </summary>
@@ -1177,5 +1358,7 @@ sztzziuqroeidcus
 pxdfvcpvwaddrzwv
 phdqqxleqdjfgfbg
 cqfikbgxvjmnfncy";
+
+        #endregion
     }
 }
