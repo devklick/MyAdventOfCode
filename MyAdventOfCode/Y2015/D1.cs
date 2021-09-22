@@ -4,7 +4,7 @@ using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace AdventOfCode.Y2015
+namespace MyAdventOfCode.Y2015
 {
     /// <summary>
     /// <see href="https://adventofcode.com/2015/day/1"/>
