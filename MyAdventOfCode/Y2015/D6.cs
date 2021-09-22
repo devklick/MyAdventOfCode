@@ -1,4 +1,5 @@
-﻿using MyAdventOfCode.Extensions;
+﻿using MyAdventOfCode.Common;
+using MyAdventOfCode.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,7 +34,7 @@ namespace MyAdventOfCode.Y2015
             Assert.Equal(toY, instruction.Range.To.Y);
 
             // Verify the changes made to the light grid
-            grid.PerformOperation(instruction.Operation, instruction.Range);
+            grid.PerformOperation(instruction.Operation, instruction.Range, Part.One);
             Assert.Equal(expectedOff, grid.NumberOfLightsOff);
             Assert.Equal(expectedOn, grid.NumberOfLightsOn);
         }
@@ -52,7 +53,7 @@ namespace MyAdventOfCode.Y2015
             foreach (var template in instructionsTemplates)
             {
                 var instruction = Instruction.Parse(template);
-                grid.PerformOperation(instruction.Operation, instruction.Range);
+                grid.PerformOperation(instruction.Operation, instruction.Range, Part.One);
             }
 
             Assert.Equal(expectedOn, grid.NumberOfLightsOn);
@@ -64,11 +65,38 @@ namespace MyAdventOfCode.Y2015
             var grid = LightGrid.Default;
             var instructions = Instruction.ParseMultiple(Input);
 
-            instructions.ForEach(i => grid.PerformOperation(i.Operation, i.Range));
+            instructions.ForEach(i => grid.PerformOperation(i.Operation, i.Range, Part.One));
 
             _output.WriteLine(grid.NumberOfLightsOn);
         }
 
+
+        [Theory]
+        [InlineData("turn on 0,0 through 0,0", 1)]
+        [InlineData("toggle 0,0 through 999,999", 2000000)]
+        public void Part_2_Example(string instructionTemplate, int expectedBrightnessIncrease)
+        {
+            var grid = LightGrid.Default;
+            var instruction = Instruction.Parse(instructionTemplate);
+
+            var before = grid.TotalBrightness;
+            grid.PerformOperation(instruction.Operation, instruction.Range, Part.Two);
+            var after = grid.TotalBrightness;
+
+            Assert.Equal(expectedBrightnessIncrease, after - before);
+        }
+
+
+        [Fact]
+        public void Part_2()
+        {
+            var grid = LightGrid.Default;
+            var instructions = Instruction.ParseMultiple(Input);
+
+            instructions.ForEach(i => grid.PerformOperation(i.Operation, i.Range, Part.Two));
+
+            _output.WriteLine(grid.TotalBrightness);
+        }
 
         /// <summary>
         /// An instruction containing an <see cref="Operation"/> to be performed
@@ -85,6 +113,12 @@ namespace MyAdventOfCode.Y2015
             /// The inclusive range of lights that should be affected by the operation.
             /// </summary>
             public Range Range { get; set; }
+
+            /// <summary>
+            /// This instruction can be used for both part 1 and part 2 of the spec. 
+            /// See <see href="https://adventofcode.com/2015/day/6"/>
+            /// </summary>
+            public int PartNo { get; set; } = 1;
 
             /// <summary>
             /// Parses a string into a list of instructions. 
@@ -217,6 +251,7 @@ namespace MyAdventOfCode.Y2015
             public int Width { get; }
             public int NumberOfLightsOn { get; private set; }
             public int NumberOfLightsOff { get; private set; }
+            public int TotalBrightness { get; private set; }
 
             private readonly Light[,] _lights;
 
@@ -242,24 +277,37 @@ namespace MyAdventOfCode.Y2015
             /// </summary>
             /// <param name="operation">The operation to be performed on the lights</param>
             /// <param name="lightRange">The range of lights affected by the operation.</param>
-            public void PerformOperation(Operation operation, Range lightRange)
+            public void PerformOperation(Operation operation, Range lightRange, Part part)
             {
-                for(int x = lightRange.From.X; x <= lightRange.To.X; x++)
+                for (int x = lightRange.From.X; x <= lightRange.To.X; x++)
                 {
-                    for(int y = lightRange.From.Y; y <= lightRange.To.Y; y++)
+                    for (int y = lightRange.From.Y; y <= lightRange.To.Y; y++)
                     {
-                        var previously = _lights[x, y].Switch;
-                        var now = _lights[x, y].OperateSwitch(operation);
+                        if (part == Part.One)
+                        {
+                            var previously = _lights[x, y].Switch;
+                            var now = _lights[x, y].OperateSwitch(operation);
 
-                        if (previously == SwitchState.Off && now == SwitchState.On)
-                        {
-                            NumberOfLightsOff--;
-                            NumberOfLightsOn++;
+                            if (previously == SwitchState.Off && now == SwitchState.On)
+                            {
+                                NumberOfLightsOff--;
+                                NumberOfLightsOn++;
+                                TotalBrightness++;
+                            }
+                            else if (previously == SwitchState.On && now == SwitchState.Off)
+                            {
+                                NumberOfLightsOff++;
+                                NumberOfLightsOn--;
+                                TotalBrightness--;
+                            }
                         }
-                        else if (previously == SwitchState.On && now == SwitchState.Off)
+                        else if (part == Part.Two)
                         {
-                            NumberOfLightsOff++;
-                            NumberOfLightsOn--;
+                            var previously = _lights[x, y].Brightness;
+                            var dimmerOperation = operation == Operation.TurnOn ? 1 : operation == Operation.TurnOff ? -1 : 2;
+                            var now = _lights[x, y].OperateDimmerSwitch(dimmerOperation);
+
+                            TotalBrightness += now - previously;
                         }
                     }
                 }
@@ -280,6 +328,11 @@ namespace MyAdventOfCode.Y2015
             /// The position the light is within a grid.
             /// </summary>
             public Position Position { get; set; }
+
+            /// <summary>
+            /// The current brightness that the light emits.
+            /// </summary>
+            public int Brightness { get; set; }
 
             public Light(int positionX, int positionY) : this(new Position(positionX, positionY)) 
             { }
@@ -308,13 +361,34 @@ namespace MyAdventOfCode.Y2015
                 return Switch;
             }
 
+            public int OperateDimmerSwitch(int change)
+            {
+                Brightness += change;
+
+                if (Brightness > 0)
+                {
+                    Switch = SwitchState.Off;
+                }
+                else if (Brightness < 0)
+                {
+                    Brightness = 0;
+                    Switch = SwitchState.Off;
+                }
+
+                return Brightness;
+            }
+
             /// <summary>
             /// Switches the light on.
             /// </summary>
             /// <remarks>
             /// If the light is already on, it's left on.
             /// </remarks>
-            public void TurnOn() => Switch = SwitchState.On;
+            public void TurnOn()
+            {
+                Switch = SwitchState.On;
+                Brightness = 1;
+            }
 
             /// <summary>
             /// Switches the light off.
@@ -322,7 +396,11 @@ namespace MyAdventOfCode.Y2015
             /// <remarks>
             /// If the light is already off, it's left off.
             /// </remarks>
-            public void TurnOff() => Switch = SwitchState.Off;
+            public void TurnOff()
+            {
+                Switch = SwitchState.Off;
+                Brightness = 0;
+            }
 
             /// <summary>
             /// Flips the switch to the opposite state.
@@ -330,10 +408,10 @@ namespace MyAdventOfCode.Y2015
             public void Toggle()
             {
                 if (Switch == SwitchState.On) 
-                    Switch = SwitchState.Off;
+                    TurnOff();
 
                 else if (Switch == SwitchState.Off) 
-                    Switch = SwitchState.On;
+                    TurnOn();
             }
         }
 
