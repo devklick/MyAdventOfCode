@@ -168,11 +168,21 @@ NOT y -> i";
             circuit.ProcessGates(gates);
 
             _output.WriteLine(circuit["a"].Signal);
+        }
 
-            foreach(var item in circuit)
-            {
-                _output.WriteLine($"{item.Key} : {item.Value.Signal}");
-            }
+        [Fact]
+        public void Part_2()
+        {
+            var circuit = new Circuit();
+
+            var gates = Gate.ParseMultiple(Input).ToList();
+            
+            // This is the result from part 1
+            gates.Add(Gate.Parse("16076 -> b"));
+
+            circuit.ProcessGates(gates);
+
+            _output.WriteLine(circuit["a"].Signal);
         }
 
 
@@ -450,28 +460,6 @@ NOT y -> i";
                     }
                     else throw new InvalidOperationException("No input signal value or source wire Id specified");
                 }
-
-                //foreach(var input in gate.InputValues)
-                //{
-                //    if (input.SignalValue.HasValue)
-                //    {
-                //        signals.Add(input.SignalValue.Value);
-                //    }
-                //    else if (input.SignalSourceWireId != null)
-                //    {
-                //        if (!TryGetValue(input.SignalSourceWireId, out var source))
-                //        {
-                //            source = new Wire
-                //            {
-                //                Id = input.SignalSourceWireId,
-                //                Signal = 0
-                //            };
-                //            Add(source.Id, source);
-                //        }
-                //        signals.Add(this[input.SignalSourceWireId].Signal);
-                //    }
-                //    else throw new InvalidOperationException("No input signal value or source wire Id specified");
-                //}
 
                 gate.ApplySignal(target, signals);
             }
