@@ -361,13 +361,20 @@ namespace MyAdventOfCode.Y2015
                 return Switch;
             }
 
+            /// <summary>
+            /// Adjusts the <see cref="Brightness"/> by the specified value. 
+            /// If the adjustment is lowering the brightness, it will be lowered to a minimum value of 0 (off).
+            /// The <see cref="Switch"/> will be set according to the new <see cref="Brightness"/> value.
+            /// </summary>
+            /// <param name="change"></param>
+            /// <returns></returns>
             public int OperateDimmerSwitch(int change)
             {
                 Brightness += change;
 
                 if (Brightness > 0)
                 {
-                    Switch = SwitchState.Off;
+                    Switch = SwitchState.On;
                 }
                 else if (Brightness < 0)
                 {
@@ -379,7 +386,7 @@ namespace MyAdventOfCode.Y2015
             }
 
             /// <summary>
-            /// Switches the light on.
+            /// Switches the light on to the lowest brightness setting; 1.
             /// </summary>
             /// <remarks>
             /// If the light is already on, it's left on.
