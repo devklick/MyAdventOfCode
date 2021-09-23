@@ -247,12 +247,34 @@ namespace MyAdventOfCode.Y2015
             /// </summary>
             public static LightGrid Default => new LightGrid(1000, 1000);
 
+            /// <summary>
+            /// The height of the grid.
+            /// </summary>
             public int Height { get; }
+
+            /// <summary>
+            /// The width of the grid.
+            /// </summary>
             public int Width { get; }
+
+            /// <summary>
+            /// The number of lights that are currently on, emitting a <see cref="Light.Brightness"/> level of 1 or more.
+            /// </summary>
             public int NumberOfLightsOn { get; private set; }
+
+            /// <summary>
+            /// The number of lights that are currently off, emitting a <see cref="Light.Brightness"/> level of 0.
+            /// </summary>
             public int NumberOfLightsOff { get; private set; }
+
+            /// <summary>
+            /// The total brightness level of all lights in the grid.
+            /// </summary>
             public int TotalBrightness { get; private set; }
 
+            /// <summary>
+            /// The indexed lights on the grid.
+            /// </summary>
             private readonly Light[,] _lights;
 
             public LightGrid(int width, int height)
