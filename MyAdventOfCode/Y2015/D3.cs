@@ -15,7 +15,7 @@ namespace MyAdventOfCode.Y2015
         {
             _output = output;
         }
-        
+
         [Theory]
         [InlineData(">", 2)]
         [InlineData("^>v<", 4)]
@@ -49,20 +49,20 @@ namespace MyAdventOfCode.Y2015
             var route = new DeliveryRoute(Input, DeliveryDriver.Santa, DeliveryDriver.RoboSanta);
             _output.WriteLine(route.TotalUniqueDropOffCoordinates);
         }
-        
+
         private class Drivers : List<DeliveryDriver>
         {
             private int _currentDriverIndex = -1;
             public Drivers(IEnumerable<DeliveryDriver> drivers) : base(drivers)
             { }
-            
+
             public DeliveryDriver GetNextDriver()
             {
                 var nextDriverIndex = _currentDriverIndex + 1;
 
                 if (nextDriverIndex >= this.Count)
                 {
-                    nextDriverIndex = 0;   
+                    nextDriverIndex = 0;
                 }
 
                 var nextDriver = this[nextDriverIndex];
@@ -72,7 +72,7 @@ namespace MyAdventOfCode.Y2015
                 return nextDriver;
             }
         }
-        
+
         private class DeliveryRoute
         {
             private const char North = '^';
@@ -87,7 +87,7 @@ namespace MyAdventOfCode.Y2015
                 var drivers = new Drivers(deliveryDrivers.ToList());
                 var driversCurrentCoordinates = new Dictionary<DeliveryDriver, Coordinate>();
                 DropOffs = new List<DropOff>();
-                
+
                 // Each driver starts at the same place and makes a drop off there
                 drivers.ForEach(d =>
                 {
@@ -95,25 +95,26 @@ namespace MyAdventOfCode.Y2015
                     DropOffs.Add(new DropOff(d, start));
                     driversCurrentCoordinates[d] = start;
                 });
-                
-                
+
+
                 foreach (var instruction in directions)
                 {
                     // Fetch the driver that will fulfil this particular instruction
                     var driver = drivers.GetNextDriver();
-                    
+
                     // Fetch this drivers current position
                     var currentCoordinate = driversCurrentCoordinates[driver];
-                    
+
                     // Determine where ths driver's next drop off will be based on their current position
                     currentCoordinate = instruction switch
                     {
                         North => Coordinate.NorthOf(currentCoordinate),
                         East => Coordinate.EastOf(currentCoordinate),
                         South => Coordinate.SouthOf(currentCoordinate),
-                        West => Coordinate.WestOf(currentCoordinate)
+                        West => Coordinate.WestOf(currentCoordinate),
+                        _ => throw new NotImplementedException()
                     };
-                    
+
                     // Record this drop off
                     DropOffs.Add(new DropOff(driver, currentCoordinate));
 
@@ -122,7 +123,7 @@ namespace MyAdventOfCode.Y2015
                 }
             }
         }
-        
+
         public class DropOff : IEquatable<DropOff>
         {
             public DeliveryDriver Driver { get; set; }
@@ -146,21 +147,21 @@ namespace MyAdventOfCode.Y2015
                 if (ReferenceEquals(null, obj)) return false;
                 if (ReferenceEquals(this, obj)) return true;
                 if (obj.GetType() != this.GetType()) return false;
-                return Equals((DropOff) obj);
+                return Equals((DropOff)obj);
             }
 
             public override int GetHashCode()
             {
-                return HashCode.Combine((int) Driver, Coordinate);
+                return HashCode.Combine((int)Driver, Coordinate);
             }
         }
-        
+
         public enum DeliveryDriver
         {
-            Santa, 
+            Santa,
             RoboSanta
         }
-        
+
         public struct Coordinate : IEquatable<Coordinate>
         {
             public int X { get; set; }
@@ -173,16 +174,16 @@ namespace MyAdventOfCode.Y2015
             }
 
             public static Coordinate NorthOf(Coordinate coordinate)
-                => new Coordinate(coordinate.X, coordinate.Y+ 1);
-                
+                => new Coordinate(coordinate.X, coordinate.Y + 1);
+
             public static Coordinate EastOf(Coordinate coordinate)
                 => new Coordinate(coordinate.X + 1, coordinate.Y);
-                
+
             public static Coordinate SouthOf(Coordinate coordinate)
-                => new Coordinate(coordinate.X, coordinate.Y -1);
-                
+                => new Coordinate(coordinate.X, coordinate.Y - 1);
+
             public static Coordinate WestOf(Coordinate coordinate)
-                => new Coordinate(coordinate.X -1, coordinate.Y);
+                => new Coordinate(coordinate.X - 1, coordinate.Y);
 
             public bool Equals(Coordinate other)
             {
