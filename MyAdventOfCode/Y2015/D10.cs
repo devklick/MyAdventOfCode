@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using MyAdventOfCode.Extensions;
 using Xunit;
 using Xunit.Abstractions;
@@ -31,8 +32,20 @@ namespace MyAdventOfCode.Y2015
         [Fact]
         public void Part_1()
         {
-            var input = "3113322113";
             var iterations = 40;
+            Test_Part_X(iterations);
+        }
+
+        [Fact]
+        public void Part_2()
+        {
+            var iterations = 50;
+            Test_Part_X(iterations);
+        }
+
+        private void Test_Part_X(int iterations)
+        {
+            var input = "3113322113";
             var sequence = Sequencer.CreateSequence(input, iterations);
             var result = sequence.Last().Length;
             _output.WriteLine(result);
@@ -46,7 +59,7 @@ namespace MyAdventOfCode.Y2015
                 var current = input;
                 for (var i = 0; i <= iterations; i++)
                 {
-                    var next = string.Empty;
+                    var next = new StringBuilder();
 
                     var charCount = 1;
                     for (var c = 0; c < current.Length; c++)
@@ -62,13 +75,13 @@ namespace MyAdventOfCode.Y2015
                         }
                         if (!nextChar.HasValue || nextChar.Value != currentChar)
                         {
-                            next = $"{next}{charCount}{currentChar}";
+                            next.Append(charCount).Append(currentChar);
                             charCount = 1;
                         }
 
                     }
                     sequence.Add(current);
-                    current = next;
+                    current = next.ToString();
                 }
                 return sequence;
             }
