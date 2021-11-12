@@ -38,8 +38,20 @@ namespace MyAdventOfCode.Y2015
             _output.WriteLine(shortest);
         }
 
+        [Fact]
+        public void Part_2()
+        {
+            var distances = A2BDistance.ParseMultiple(TestData);
+            var planner = new RoutePlanner(distances);
+            var longest = planner.GetLongestRoute();
+
+            _output.WriteLine(longest.Distance);
+            _output.WriteLine(longest);
+        }
+
         private class RoutePlanner
         {
+            public enum RouteType { Shortest, Longest };
             Dictionary<(string PointA, string PointB), A2BDistance> _map;
             private HashSet<string> _allLocations;
             public RoutePlanner(IEnumerable<A2BDistance> distances)
@@ -58,35 +70,47 @@ namespace MyAdventOfCode.Y2015
                 }
             }
 
-            public Route GetShortestRoute()
+            public Route GetRoute(RouteType routeType)
             {
-                string[] shortestTrip = null;
-                int shortestDistance = 0;
-                foreach (var trip in _allLocations.GetPermutations())
+                string[] chosenRoute = null;
+                int chosenRouteDistance = 0;
+                foreach (var route in _allLocations.GetPermutations())
                 {
-                    var tripDistance = 0;
-                    for (var i = 0; i < trip.Length; i++)
+                    var routeDistance = 0;
+                    for (var i = 0; i < route.Length; i++)
                     {
                         var iNext = i + 1;
-                        if (iNext < trip.Length && _map.TryGetValue((trip[i], trip[iNext]), out var a2b))
+                        if (iNext < route.Length && _map.TryGetValue((route[i], route[iNext]), out var a2b))
                         {
-                            tripDistance += a2b.Distance;
+                            routeDistance += a2b.Distance;
                         }
                     }
-                    if (tripDistance < shortestDistance || shortestDistance == 0)
+                    if (routeType == RouteType.Shortest
+                        && (routeDistance < chosenRouteDistance || chosenRouteDistance == 0))
                     {
-                        shortestDistance = tripDistance;
-                        shortestTrip = trip;
+                        chosenRouteDistance = routeDistance;
+                        chosenRoute = route;
+                    }
+                    else if (routeType == RouteType.Longest
+                        && (routeDistance > chosenRouteDistance || chosenRouteDistance == 0))
+                    {
+                        chosenRouteDistance = routeDistance;
+                        chosenRoute = route;
                     }
                 }
 
-
                 return new Route
                 {
-                    Stops = shortestTrip.ToList(),
-                    Distance = shortestDistance
+                    Stops = chosenRoute.ToList(),
+                    Distance = chosenRouteDistance
                 };
             }
+
+            public Route GetShortestRoute()
+                => GetRoute(RouteType.Shortest);
+
+            public Route GetLongestRoute()
+                => GetRoute(RouteType.Longest);
         }
 
         private class Route
