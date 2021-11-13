@@ -33,6 +33,16 @@ namespace MyAdventOfCode.Y2015
             _output.WriteLine(result);
         }
 
+
+        [Fact]
+        public void Part_2()
+        {
+            var input = "vzbxxyzz"; // answer from previous part
+            var generator = PasswordGenerator.Part1;
+            var result = generator.RefreshPassword(input);
+            _output.WriteLine(result);
+        }
+
         private class PasswordGenerator
         {
             private readonly IEnumerable<ICheck> _checks;
