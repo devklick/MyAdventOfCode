@@ -1,4 +1,4 @@
-const fs = require("fs/promises");
+const { getInput } = require("./common-functions");
 
 /**
  *
@@ -46,14 +46,8 @@ const getTotalIncrements = (numbers) => {
   return total;
 };
 
-/**
- * @returns {Promise<string>}
- */
-const getInput = async () =>
-  await fs.readFile(`./data/d1.txt`).then((buffer) => buffer.toString("utf-8"));
-
 const run = async (partNo) => {
-  const input = parseInput(await getInput(), partNo);
+  const input = parseInput(await getInput(1), partNo);
 
   if (input.partNo === 1) {
     return console.log(getTotalIncrements(input.data));
