@@ -1,6 +1,7 @@
 const fs = require('fs/promises');
 
 /**
+ * @param {number} day
  * @returns {Promise<string>}
  */
 const getInput = async (day) =>
