@@ -1,9 +1,9 @@
-const { getInput } = require('./common-functions');
+const { getInput } = require("./common-functions");
 
 /**
- * @typedef { Object } Point A position in a two dimensional grid.
- * @property { number } Point.c The position along the vertical axis (aka the column)
- * @property { number } Point.r The position along the horizontal axis (aka the row)
+ * @typedef { Object } Point A position in a two dimensional grid presented in R1C1 format.
+ * @property { number } Point.r The position along the vertical axis (aka the row) 
+ * @property { number } Point.c The position along the horizontal axis (aka the column)
  */
 
 /**
@@ -23,9 +23,9 @@ const { getInput } = require('./common-functions');
  */
 
 /**
- * @typedef { Object } LinnearInfo
- * @property { Axis } LinnearInfo.axis
- * @property { Direction } LinnearInfo.direction
+ * @typedef { Object } LineInfo
+ * @property { Axis } LineInfo.axis
+ * @property { Direction } LineInfo.direction
  */
 
 /**
@@ -41,21 +41,51 @@ const { getInput } = require('./common-functions');
  */
 
 /**
- * Parses a point
+ * Parses the input data into an array of structured objects.
+ * @param { string } rawInput
+ * @returns { Line[] }
+ */
+const parseInput = (rawInput) =>
+  rawInput
+    .trim()
+    .split("\n")
+    .map((line) => parseLine(line));
+
+/**
+ * Parses a line of the input data, which coincientally, contains
+ * information about the start and end points of a line.
+ * @param {string} rawInput
+ * @returns {Line}
+ */
+const parseLine = (rawInput) => {
+  const [rawStart, rawEnd] = rawInput
+    .split(" -> ")
+    .filter((line) => line.trim());
+
+  const start = parsePoint(rawStart);
+  const end = parsePoint(rawEnd);
+
+  const { axis, direction } = getLineInfo(start, end);
+  return { start, end, axis, direction };
+};
+
+/**
+ * Parses a point.
+ * Note that the points on the raw input are in the format of 'x,y', which is 'c,r' in R1C1 format.
  * @param {string} rawInput
  * @returns {Point}
  */
 const parsePoint = (rawInput) => {
   const [c, r] = rawInput.split(",");
-  return { c: Number(c.trim()), r: Number(r.trim()) };
+  return { r: Number(r.trim()), c: Number(c.trim()) };
 };
 
 /**
  * @param {Point} start
  * @param {Point} end
- * @returns {LinnearInfo}
+ * @returns {LineInfo}
  */
-const getLinnearInfo = (start, end) => {
+const getLineInfo = (start, end) => {
   const cDiff = end.c - start.c;
   const rDiff = end.r - start.r;
 
@@ -84,45 +114,72 @@ const getLinnearInfo = (start, end) => {
 };
 
 /**
- * Parses a line of the input data, which coincientally, contains
- * information about the start and end points of a line.
- * @param {string} rawInput
- * @returns {Line}
+ * Returns the opposite direction
+ * @param {Direction} direction
+ * @returns {Direction}
  */
-const parseLine = (rawInput) => {
-  const [rawStart, rawEnd] = rawInput
-    .split(" -> ")
-    .filter((line) => line.trim());
-
-  const start = parsePoint(rawStart);
-  const end = parsePoint(rawEnd);
-
-  const { axis, direction } = getLinnearInfo(start, end);
-  return { start, end, axis, direction };
+const flipDirection = (direction) => {
+  // prettier-ignore
+  switch(direction) {
+    case 'N': return 'S';
+    case 'E': return 'E';
+    case 'S': return 'N';
+    case 'W': return 'E';
+    case 'NE': return 'SW';
+    case 'SE': return 'NW';
+    case 'SW': return 'NE';
+    case 'NW': return 'SE';
+  }
 };
+
+/**
+ * Flips the line so it's travelling in the opposite direction
+ * @param {Line} line
+ * @returns { Line }
+ */
+const flipLine = ({ start, end, direction, axis }) => ({
+  axis,
+  start: end,
+  end: start,
+  direction: flipDirection(direction),
+});
 
 /**
  * Returns a new line that ensure's it is being drawn in a positive direction.
  * @param {Line} line
+ * @returns {Line}
  */
 const normaliseLine = (line) => {
-  const { start, end } = line;
-  if (start.c > end.c || start.r > end.r) {
-    return { ...line, start: end, end: start };
+  if (line.axis === "diagonal") return normaliseOrdinalLine(line);
+  else return normaliseCardinalLine(line);
+};
+
+/**
+ * Handles the normalisation of a line travelling along either the horizontal or vertical axis.
+ * Use this function to ensure a line travels along the horizontal or vertical axis in a *positive* direction.
+ * @param {Line} line
+ * @returns {Line}
+ */
+const normaliseCardinalLine = (line) => {
+  if (line.direction === "N" || line.direction === "W") {
+    return flipLine(line);
   }
   return line;
 };
 
 /**
- * Parses the input data into an array of structured objects.
- * @param { string } rawInput
- * @returns { Line[] }
+ * Handles the normalisation of a line travelling along either the diagonal axis.
+ * Use this function to ensure a line travels positively along the vertical axis, regardless of
+ * which the direction of travel along the horizontal axis.
+ * @param {Line} line
+ * @returns {Line}
  */
-const parseInput = (rawInput) =>
-  rawInput
-    .trim()
-    .split("\n")
-    .map((line) => parseLine(line));
+const normaliseOrdinalLine = (line) => {
+  if (line.direction === "NE" || line.direction === "NW") {
+    return flipLine(line);
+  }
+  return line;
+};
 
 /**
  * @param {Line[]} data
@@ -147,28 +204,27 @@ const getGridSize = (data) => {
  * @param {number} width
  * @param {number} height
  */
-const createGrid = (width, height) => Array.from(Array(width), () => Array(height).fill(0));
+const createGrid = (width, height) =>
+  Array.from(Array(width), () => Array(height).fill(0));
 
 /**
  * @param {Grid} grid
  * @param {Line[]} lines
+ * @param {number} partNo
  * @returns {Grid}
  */
-const plotLines = (grid, lines) => {
+const plotLines = (grid, lines, partNo) => {
   for (const line of lines) {
-    const normLine = normaliseLine(line);
+    const normalisedLine = normaliseLine(line);
     switch (line.axis) {
       case "diagonal":
-        continue;
+        if (partNo === 2) plotDiagonalLine(grid, normalisedLine);
+        break;
       case "horizontal":
-        for (let col = normLine.start.c; col <= normLine.end.c; col++) {
-          grid[col][normLine.start.r] += 1;
-        }
+        plotHorizontalLine(grid, normalisedLine);
         break;
       case "vertical":
-        for (let row = normLine.start.r; row <= normLine.end.r; row++) {
-          grid[normLine.start.c][row] += 1;
-        }
+        plotVerticalLine(grid, normalisedLine);
         break;
     }
   }
@@ -176,33 +232,71 @@ const plotLines = (grid, lines) => {
 };
 
 /**
- * @param {Grid} grid 
+ * @param {Grid} grid
+ * @param {Line} line
+ */
+const plotHorizontalLine = (grid, line) => {
+  for (let col = line.start.c; col <= line.end.c; col++) {
+    grid[line.start.r][col] += 1;
+  }
+};
+
+/**
+ * @param {Grid} grid
+ * @param {Line} line
+ */
+const plotVerticalLine = (grid, line) => {
+  for (let row = line.start.r; row <= line.end.r; row++) {
+    grid[row][line.start.c] += 1;
+  }
+};
+
+/**
+ * @param {Grid} grid
+ * @param {Line} line
+ * @copyright https://github.com/JakobMakovac/
+ * @see https://github.com/JakobMakovac/advent-of-code/blob/ea430b56bd3d44734ef1d97d5c4b4461da2e9712/2021/day5/day5.js#L89
+ */
+const plotDiagonalLine = (grid, line) => {
+  const delta = Math.abs(line.end.c - line.start.c);
+  for (let i = 0; i <= delta; i++) {
+    const c = line.start.c + (line.start.c < line.end.c ? i : - i);
+    const r = line.start.r + (line.start.r < line.end.r ? i : - i);
+
+    grid[r][c]++;
+  }
+};
+
+/**
+ * @param {Grid} grid
  * @returns {{point: Point, overlaps: number}[]}
  */
 const getOverlappingPoints = (grid) => {
   const points = [];
-  for (let c = 0; c < grid.length; c++) {
-    for (let r = 0; r < grid[c].length; r++) {
-      const value = grid[c][r];
+
+  for (let r = 0; r < grid.length; r++) {
+    for (let c = 0; c < grid[r].length; c++) {
+      const value = grid[r][c];
       if (value > 1) {
         points.push({
-          point: { c, r }, 
-          overlaps: value
-        })
+          point: { r, c },
+          overlaps: value,
+        });
       }
     }
   }
   return points;
-}
+};
 
-const run = async () => {
+const run = async (partNo) => {
   const rawInput = await getInput(5);
   const data = parseInput(rawInput);
   const { width, height } = getGridSize(data);
-  const grid = plotLines(createGrid(width, height), data);
+  const grid = plotLines(createGrid(width, height), data, partNo);
   const overlaps = getOverlappingPoints(grid).length;
 
   console.log(overlaps);
 };
 
-run();
+run(1);
+run(2);
