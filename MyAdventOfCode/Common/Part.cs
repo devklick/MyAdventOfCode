@@ -2,7 +2,7 @@
 {
     public enum Part
     {
-        One,
-        Two
+        One = 1,
+        Two = 2
     }
 }
