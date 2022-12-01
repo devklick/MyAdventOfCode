@@ -1,10 +1,10 @@
-const { getInput } = require("./common-functions");
+const { getInput, csvNumberArray } = require("./common-functions");
 
 /**
  * @param {string} rawInput
  * @returns {number[]}
  */
-const parseInput = (rawInput) => rawInput.trim().split(",").map(Number);
+const parseInput = (rawInput) => csvNumberArray(rawInput);
 
 /**
  * Gets the number of days for the specific partNo
