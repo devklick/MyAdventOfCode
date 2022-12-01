@@ -22,7 +22,7 @@ public class Solution : TestBase
 
     [Fact]
     public override async Task Part1_VerifyExample()
-        => await PartN_VerifyExample(Part.Two, 1, 24000);
+        => await PartN_VerifyExample(Part.One, 1, 24000);
 
     [Fact]
     public override async Task Part1_Actual()
