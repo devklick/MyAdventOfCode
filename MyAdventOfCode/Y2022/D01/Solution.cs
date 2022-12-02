@@ -14,11 +14,10 @@ namespace MyAdventOfCode.Y2022.D01;
 
 public class Solution : TestBase
 {
-    public Solution(ITestOutputHelper output) : base(output)
-    { }
-
     protected override int DayNo => 1;
     protected override int YearNo => 2022;
+    public Solution(ITestOutputHelper output) : base(output)
+    { }
 
     [Fact]
     public override async Task Part1_VerifyExample()
@@ -61,22 +60,25 @@ public class Solution : TestBase
         private readonly List<ElfStash> _elfStashes = new();
         public CalorificInventory(string[] data)
         {
-            var calories = new List<int>();
+            var snacks = new List<int>();
             var elfNo = 0;
 
             foreach (var line in data)
             {
                 if (string.IsNullOrWhiteSpace(line))
                 {
-                    _elfStashes.Add(new ElfStash(elfNo, calories));
-                    calories = new List<int>();
+                    _elfStashes.Add(new ElfStash(elfNo, snacks));
+                    snacks = new List<int>();
                     elfNo++;
                     continue;
                 }
 
-                calories.Add(int.Parse(line.Trim()));
+                snacks.Add(int.Parse(line.Trim()));
             }
-            _elfStashes.Add(new ElfStash(elfNo, calories));
+            if (snacks.Any())
+            {
+                _elfStashes.Add(new ElfStash(elfNo, snacks));
+            }
             _elfStashes = _elfStashes.OrderByDescending(stash => stash.TotalCalories).ToList();
         }
 
@@ -87,13 +89,13 @@ public class Solution : TestBase
     private class ElfStash
     {
         public int ElfNo { get; set; }
-        public List<int> Calories { get; set; }
-        public int TotalCalories => Calories.Sum();
+        public List<int> Snacks { get; set; }
+        public int TotalCalories => Snacks.Sum();
 
-        public ElfStash(int elfNo, List<int> calories)
+        public ElfStash(int elfNo, List<int> snacks)
         {
             ElfNo = elfNo;
-            Calories = calories;
+            Snacks = snacks;
         }
     }
 }
