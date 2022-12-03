@@ -53,7 +53,10 @@ public class Solution : TestBase
 
     private abstract class Outcome
     {
-        private static readonly List<Outcome> All = new() { new Win(), new Draw(), new Lose() };
+        public static Win Win = new();
+        public static Draw Draw = new();
+        public static Lose Lose = new();
+        private static readonly List<Outcome> All = new() { Win, Draw, Lose };
         public static Outcome Parse(char c) => All.First(o => o.Char == c);
 
         public abstract int Bonus { get; }
@@ -177,10 +180,6 @@ public class Solution : TestBase
     {
         private readonly List<PlayerHand> _playerHands = new();
 
-        private const int WinBonus = 6;
-        private const int DrawBonus = 3;
-        private const int LossBonus = 0;
-
         public Round(IEnumerable<char> hands, Part part)
         {
             var playerNo = 1;
@@ -206,7 +205,7 @@ public class Solution : TestBase
             var win = !draw && _playerHands.Where((other, otherIndex) => index != otherIndex && other.Hand.DefeatedByType == playerHand.Hand.Type).Any();
             var loss = !win && !draw;
 
-            var points = playerHand.Hand.Points + (draw ? DrawBonus : win ? WinBonus : LossBonus);
+            var points = playerHand.Hand.Points + (draw ? Outcome.Draw.Bonus : win ? Outcome.Win.Bonus : Outcome.Lose.Bonus);
             return new PlayerScore(playerHand.PlayerNo, points);
         });
     }
