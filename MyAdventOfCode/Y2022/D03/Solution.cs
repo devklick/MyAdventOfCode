@@ -35,7 +35,7 @@ public class Solution : TestBase
 
     [Fact]
     public override async Task Part2_Actual()
-        => await Invoke(Part.Two, DataType.Actual, (loader) => loader.GetGroupStickerPriority(3)); // 13889
+        => await Invoke(Part.Two, DataType.Actual, (loader) => loader.GetGroupStickerPriority(3), 2821); // 2821
 
     private delegate int InvokeRucksackLoaderDelegate(RucksackLoader loader);
     private async Task Invoke(Part part, DataType dataType, InvokeRucksackLoaderDelegate loaderCallback, int? expected = null)
@@ -59,7 +59,7 @@ public class Solution : TestBase
         {
             foreach (var line in data)
             {
-                _rucksacks.Add(new Rucksack(line.ToList(), 2));
+                _rucksacks.Add(new Rucksack(line.Select(c => new Item(c)).ToList(), 2));
             }
         }
 
@@ -76,7 +76,7 @@ public class Solution : TestBase
             {
                 var groupRucksacks = _rucksacks.GetRange(i, Math.Min(groupSize, _rucksacks.Count - 1));
                 var common = groupRucksacks.Select(b => b.GetAllItems()).IntersectAll();
-                var priority = common.Sum(c => Item.ValueMap[c]);
+                var priority = common.Sum(item => item.Value);
                 total += priority;
             }
 
@@ -88,7 +88,7 @@ public class Solution : TestBase
     {
         private readonly List<Compartment> _compartments = new();
 
-        public Rucksack(List<char> items, int numberOfCompartments)
+        public Rucksack(List<Item> items, int numberOfCompartments)
         {
             if (items.Count % numberOfCompartments != 0)
             {
@@ -97,13 +97,15 @@ public class Solution : TestBase
             var compartmentSize = items.Count / numberOfCompartments;
             for (var i = 0; i < items.Count; i += compartmentSize)
             {
-                _compartments.Add(new Compartment(items.GetRange(i, Math.Min(compartmentSize, items.Count - 1))));
+                var compartmentItems = items.GetRange(i, Math.Min(compartmentSize, items.Count - 1));
+                var compartment = new Compartment(compartmentItems.ToList());
+                _compartments.Add(compartment);
             }
         }
 
-        public List<char> GetCommonItems()
+        public List<Item> GetCommonItems()
         {
-            var set = new HashSet<char>(_compartments.First().Items);
+            var set = new HashSet<Item>(_compartments.First().Items);
             foreach (var compartment in _compartments.Skip(1))
             {
                 set.IntersectWith(compartment.Items);
@@ -111,16 +113,16 @@ public class Solution : TestBase
             return set.ToList();
         }
 
-        public int GetTotalCommonItemsPriority() => GetCommonItems().Sum(c => Item.ValueMap[c]);
+        public int GetTotalCommonItemsPriority() => GetCommonItems().Sum(item => item.Value);
 
-        public List<char> GetAllItems() => _compartments.SelectMany(c => c.Items).ToList();
+        public List<Item> GetAllItems() => _compartments.SelectMany(c => c.Items).ToList();
     }
 
     private class Compartment
     {
-        public List<char> Items = new();
+        public List<Item> Items = new();
 
-        public Compartment(List<char> items)
+        public Compartment(List<Item> items)
         {
             Items = items;
         }
@@ -132,11 +134,13 @@ public class Solution : TestBase
             .Select((character, index) => (character, index))
             .ToDictionary(x => x.character, x => x.index + 1);
 
+        public readonly int Value;
         private readonly char _char;
 
         public Item(char c)
         {
             _char = c;
+            Value = ValueMap[_char];
         }
 
         public bool Equals(char other)
