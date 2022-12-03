@@ -3,11 +3,22 @@ using System.Linq;
 
 namespace MyAdventOfCode.Extensions
 {
-    /// <summary>
-    /// Lifted straight from <see href="https://stackoverflow.com/a/58826787/6236042"/>
-    /// </summary>
+
     public static class EnumerableExtensions
     {
+        public static IEnumerable<T> IntersectAll<T>(this IEnumerable<IEnumerable<T>> collections)
+        {
+            var set = new HashSet<T>(collections.First());
+            foreach (var other in collections.Skip(1))
+            {
+                set.IntersectWith(other);
+            }
+            return set;
+        }
+
+        /// <summary>
+        /// Lifted straight from <see href="https://stackoverflow.com/a/58826787/6236042"/>
+        /// </summary>
         public static IEnumerable<T[]> GetPermutations<T>(this IEnumerable<T> source)
         {
             var sourceArray = source.ToArray();
