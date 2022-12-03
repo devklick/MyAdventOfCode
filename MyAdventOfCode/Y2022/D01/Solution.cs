@@ -21,38 +21,33 @@ public class Solution : TestBase
 
     [Fact]
     public override async Task Part1_VerifyExample()
-        => await PartN_VerifyExample(Part.One, 1, 24000);
+        => await Invoke(Part.One, DataType.Example, 1, 24000);
 
     [Fact]
     public override async Task Part1_Actual()
-        => await PartN_Actual(Part.One, 1); // 70613
+        => await Invoke(Part.One, DataType.Actual, 1, 70613); // 70613
 
     [Fact]
     public override async Task Part2_VerifyExample()
-        => await PartN_VerifyExample(Part.Two, 3, 45000);
+        => await Invoke(Part.Two, DataType.Example, 3, 45000);
 
     [Fact]
     public override async Task Part2_Actual()
-        => await PartN_Actual(Part.Two, 3); // 205805
+        => await Invoke(Part.Two, DataType.Actual, 3, 205805);
 
-    private async Task PartN_VerifyExample(Part part, int stashesToTake, int expected)
+    private async Task Invoke(Part part, DataType dataType, int stashesToTake, int? expected = null)
     {
-        var data = await GetExampleData();
-        var inventory = new CalorificInventory(data);
-
-        var result = inventory.GetTotalOfHighestCalorificStashes(stashesToTake);
-
-        result.Should().Be(expected, part.ToString());
-    }
-
-    private async Task PartN_Actual(Part part, int stashesToTake)
-    {
-        var data = await GetData();
+        var data = await GetData(dataType);
         var inventory = new CalorificInventory(data);
 
         var result = inventory.GetTotalOfHighestCalorificStashes(stashesToTake);
 
         WriteResult(part, result);
+
+        if (expected != null)
+        {
+            result.Should().Be(expected, part.ToString());
+        }
     }
 
     private class CalorificInventory

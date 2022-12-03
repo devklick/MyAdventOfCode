@@ -6,6 +6,8 @@ using Xunit.Abstractions;
 
 namespace MyAdventOfCode.Common;
 
+public enum DataType { Example, Actual }
+
 public abstract class TestBase
 {
     protected readonly ITestOutputHelper _output;
@@ -23,11 +25,18 @@ public abstract class TestBase
     private string ExampleDataFilePath => Path.Combine(RootPath, "example.data.txt");
     private string TestName => $"Y{YearNo} D{DayNo:D2}";
 
-    protected virtual async Task<string[]> GetData()
+    protected virtual async Task<string[]> GetActualData()
         => await File.ReadAllLinesAsync(DataFilePath);
 
     protected virtual async Task<string[]> GetExampleData()
         => await File.ReadAllLinesAsync(ExampleDataFilePath);
+
+    protected virtual async Task<string[]> GetData(DataType dataType) => dataType switch
+    {
+        DataType.Example => await GetExampleData(),
+        DataType.Actual => await GetActualData(),
+        _ => throw new NotImplementedException($"Data type {dataType} not supported"),
+    };
 
     protected void WriteResult<T>(Part part, T result)
         => _output.WriteLine($"{TestName} part {part}: {result}");
