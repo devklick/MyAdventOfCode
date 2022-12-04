@@ -15,9 +15,6 @@ namespace MyAdventOfCode.Y2022.D03;
 
 public class Solution : TestBase
 {
-    protected override int DayNo => 3;
-    protected override int YearNo => 2022;
-
     public Solution(ITestOutputHelper output) : base(output)
     { }
 

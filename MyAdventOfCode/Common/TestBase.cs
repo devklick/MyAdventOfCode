@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 using Xunit.Abstractions;
@@ -11,19 +12,23 @@ public enum DataType { Example, Actual }
 public abstract class TestBase
 {
     protected readonly ITestOutputHelper _output;
+    private readonly int _dayNo;
+    private readonly int _yearNo;
+    private string YearString => $"Y{_yearNo}";
+    private string DayString => $"D{_dayNo:D2}";
+    private static string RootPath => Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(System.IO.Directory.GetCurrentDirectory())));
+    private string FolderPath => Path.Combine(RootPath, YearString, DayString);
+    private string DataFilePath => Path.Combine(FolderPath, "data.txt");
+    private string ExampleDataFilePath => Path.Combine(FolderPath, "example.data.txt");
+    private string TestName => $"{YearString} {DayString}";
 
     public TestBase(ITestOutputHelper output)
     {
         _output = output;
+        var namespaceParts = GetType().Namespace.Split(".");
+        _dayNo = int.Parse(new string(namespaceParts.Last().Where(char.IsDigit).ToArray()));
+        _yearNo = int.Parse(new string(namespaceParts.Reverse().Skip(1).First().Where(char.IsDigit).ToArray()));
     }
-
-    protected abstract int DayNo { get; }
-    protected abstract int YearNo { get; }
-    private static string WantedPath => Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(System.IO.Directory.GetCurrentDirectory())));
-    private string RootPath => Path.Combine(WantedPath, $"Y{YearNo}", $"D{DayNo:D2}");
-    private string DataFilePath => Path.Combine(RootPath, "data.txt");
-    private string ExampleDataFilePath => Path.Combine(RootPath, "example.data.txt");
-    private string TestName => $"Y{YearNo} D{DayNo:D2}";
 
     protected virtual async Task<string[]> GetActualData()
         => await File.ReadAllLinesAsync(DataFilePath);
