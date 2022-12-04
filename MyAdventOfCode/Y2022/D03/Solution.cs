@@ -20,26 +20,25 @@ public class Solution : TestBase
 
     [Fact]
     public override async Task Part1_VerifyExample()
-        => await Invoke(Part.One, DataType.Example, (loader) => loader.GetTotalCommonItemsPriority(), 157);
+        => await Invoke(Part.One, DataType.Example, (sut) => sut.GetTotalCommonItemsPriority(), 157);
 
     [Fact]
     public override async Task Part1_Actual()
-        => await Invoke(Part.One, DataType.Actual, (loader) => loader.GetTotalCommonItemsPriority(), 8233); // 8233
+        => await Invoke(Part.One, DataType.Actual, (sut) => sut.GetTotalCommonItemsPriority(), 8233); // 8233
 
     [Fact]
     public override async Task Part2_VerifyExample()
-        => await Invoke(Part.Two, DataType.Example, (loader) => loader.GetGroupStickerPriority(3), 70);
+        => await Invoke(Part.Two, DataType.Example, (sut) => sut.GetGroupStickerPriority(3), 70);
 
     [Fact]
     public override async Task Part2_Actual()
-        => await Invoke(Part.Two, DataType.Actual, (loader) => loader.GetGroupStickerPriority(3), 2821); // 2821
+        => await Invoke(Part.Two, DataType.Actual, (sut) => sut.GetGroupStickerPriority(3), 2821); // 2821
 
-    private delegate int InvokeRucksackLoaderDelegate(RucksackLoader loader);
-    private async Task Invoke(Part part, DataType dataType, InvokeRucksackLoaderDelegate loaderCallback, int? expected = null)
+    private async Task Invoke(Part part, DataType dataType, Func<RucksackLoader, int> sut, int? expected = null)
     {
         var data = await GetData(dataType);
         var loader = new RucksackLoader(data);
-        var result = loaderCallback?.Invoke(loader);
+        var result = sut?.Invoke(loader);
 
         WriteResult(part, result);
 

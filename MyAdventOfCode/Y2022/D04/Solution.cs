@@ -19,26 +19,25 @@ public class Solution : TestBase
 
     [Fact]
     public override async Task Part1_VerifyExample()
-        => await Invoke(Part.One, DataType.Example, (rota) => rota.GetTotalAllocationDuplication(), 2);
+        => await Invoke(Part.One, DataType.Example, (sut) => sut.GetTotalAllocationDuplication(), 2);
 
     [Fact]
     public override async Task Part1_Actual()
-        => await Invoke(Part.One, DataType.Actual, (rota) => rota.GetTotalAllocationDuplication(), 542); // 542
+        => await Invoke(Part.One, DataType.Actual, (sut) => sut.GetTotalAllocationDuplication(), 542); // 542
 
     [Fact]
     public override async Task Part2_VerifyExample()
-        => await Invoke(Part.Two, DataType.Example, (rota) => rota.GetTotalAllocationOverlaps(), 4);
+        => await Invoke(Part.Two, DataType.Example, (sut) => sut.GetTotalAllocationOverlaps(), 4);
 
     [Fact]
     public override async Task Part2_Actual()
-        => await Invoke(Part.Two, DataType.Actual, (rota) => rota.GetTotalAllocationOverlaps(), 900); // 900
+        => await Invoke(Part.Two, DataType.Actual, (sut) => sut.GetTotalAllocationOverlaps(), 900); // 900
 
-    private delegate int InvokeSutDelegate(CleaningRota rota);
-    private async Task Invoke(Part part, DataType dataType, InvokeSutDelegate sutCallback, int? expected = null)
+    private async Task Invoke(Part part, DataType dataType, Func<CleaningRota, int> sut, int? expected = null)
     {
         var data = await GetData(dataType);
         var rota = new CleaningRota(data);
-        var result = sutCallback?.Invoke(rota);
+        var result = sut?.Invoke(rota);
 
         WriteResult(part, result);
 
@@ -103,9 +102,7 @@ public class Solution : TestBase
         public bool HasAllocationOverlap()
             => CompareAllocations((a, b) => a.Any(x => b.Any(y => x == y)));
 
-        private delegate bool CompareSectionAllocationsDelegate(SectionAllocation a, SectionAllocation b);
-
-        private bool CompareAllocations(CompareSectionAllocationsDelegate ct)
+        private bool CompareAllocations(Func<SectionAllocation, SectionAllocation, bool> ct)
         {
             foreach (var cleaner in this)
             {
