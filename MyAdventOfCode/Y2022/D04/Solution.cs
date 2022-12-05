@@ -102,11 +102,11 @@ public class Solution : TestBase
         public bool HasAllocationOverlap()
             => CompareAllocations((a, b) => a.Any(x => b.Any(y => x == y)));
 
-        private bool CompareAllocations(Func<SectionAllocation, SectionAllocation, bool> ct)
+        private bool CompareAllocations(Func<SectionAllocation, SectionAllocation, bool> compare)
         {
             foreach (var cleaner in this)
             {
-                if (this.Any(c => c.Id != cleaner.Id && ct.Invoke(c.AllocatedSections, cleaner.AllocatedSections)))
+                if (this.Any(c => c.Id != cleaner.Id && compare.Invoke(c.AllocatedSections, cleaner.AllocatedSections)))
                 {
                     return true;
                 }
