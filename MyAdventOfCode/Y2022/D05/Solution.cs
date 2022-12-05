@@ -126,7 +126,8 @@ public class Solution : TestBase
             {
                 var parts = instruction.Split();
                 int total = int.Parse(parts[1]), from = int.Parse(parts[3]), to = int.Parse(parts[5]);
-                return new RearrangeInstruction(total, from, to, part == Part.Two);
+                var maintainOrder = part == Part.Two;
+                return new RearrangeInstruction(total, from, to, maintainOrder);
             });
 
     }
@@ -138,6 +139,12 @@ public class Solution : TestBase
         public int To { get; }
         public bool MaintainOrder { get; set; }
 
+        /// <param name="numberOfItems">The total number of items to be moved from one crate stack to another</param>
+        /// <param name="from">The stack of crates from which crates should be removed</param>
+        /// <param name="to">The stack of crates to which the removed crates should be added</param>
+        /// <param name="maintainOrder">Whether or not the order of crates should be maintained, 
+        /// e.g. the order they were present in the `from` stack is maintained in the when moved to the `to` stack.
+        /// Setting to false simulates the crates being moved one-by-one (i.e. order is reversed).</param>
         public RearrangeInstruction(int numberOfItems, int from, int to, bool maintainOrder)
         {
             NumberOfItems = numberOfItems;
