@@ -46,8 +46,8 @@ public abstract class TestBase
     protected void WriteResult<T>(Part part, T result)
         => _output.WriteLine($"{TestName} Part {part}: {result}");
 
-    public abstract Task Part1_VerifyExample();
+    public abstract Task Part1_Example();
     public abstract Task Part1_Actual();
-    public abstract Task Part2_VerifyExample();
+    public abstract Task Part2_Example();
     public abstract Task Part2_Actual();
 }

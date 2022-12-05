@@ -18,7 +18,7 @@ public class Solution : TestBase
     { }
 
     [Fact]
-    public override async Task Part1_VerifyExample()
+    public override async Task Part1_Example()
         => await Invoke(Part.One, DataType.Example, 2, 15);
 
     [Fact]
@@ -26,7 +26,7 @@ public class Solution : TestBase
         => await Invoke(Part.One, DataType.Actual, 2, 14827); // 14827
 
     [Fact]
-    public override async Task Part2_VerifyExample()
+    public override async Task Part2_Example()
         => await Invoke(Part.Two, DataType.Example, 2, 12);
 
     [Fact]

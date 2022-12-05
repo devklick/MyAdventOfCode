@@ -18,7 +18,7 @@ public class Solution : TestBase
     { }
 
     [Fact]
-    public override async Task Part1_VerifyExample()
+    public override async Task Part1_Example()
         => await Invoke(Part.One, DataType.Example, (sut) => sut.GetTotalAllocationDuplication(), 2);
 
     [Fact]
@@ -26,7 +26,7 @@ public class Solution : TestBase
         => await Invoke(Part.One, DataType.Actual, (sut) => sut.GetTotalAllocationDuplication(), 542); // 542
 
     [Fact]
-    public override async Task Part2_VerifyExample()
+    public override async Task Part2_Example()
         => await Invoke(Part.Two, DataType.Example, (sut) => sut.GetTotalAllocationOverlaps(), 4);
 
     [Fact]
