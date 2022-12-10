@@ -28,13 +28,14 @@ public abstract class TestBase
         var namespaceParts = GetType().Namespace.Split(".");
         _dayNo = int.Parse(new string(namespaceParts.Last().Where(char.IsDigit).ToArray()));
         _yearNo = int.Parse(new string(namespaceParts.Reverse().Skip(1).First().Where(char.IsDigit).ToArray()));
+        Console.SetOut(new ConsoleWriter(_output));
     }
 
     protected virtual async Task<string[]> GetActualData()
-        => await File.ReadAllLinesAsync(DataFilePath);
+        => await GetData(DataFilePath);
 
     protected virtual async Task<string[]> GetExampleData()
-        => await File.ReadAllLinesAsync(ExampleDataFilePath);
+        => await GetData(ExampleDataFilePath);
 
     protected virtual async Task<string[]> GetData(DataType dataType) => dataType switch
     {
@@ -50,4 +51,14 @@ public abstract class TestBase
     public abstract Task Part1_Actual();
     public abstract Task Part2_Example();
     public abstract Task Part2_Actual();
+
+    private static async Task<string[]> GetData(string path)
+    {
+        var data = await File.ReadAllLinesAsync(path);
+        if (string.IsNullOrEmpty(data.Last()))
+        {
+            data = data.Take(data.Length - 1).ToArray();
+        }
+        return data;
+    }
 }

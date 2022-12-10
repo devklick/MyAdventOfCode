@@ -39,14 +39,14 @@ public class Solution : TestBase
         => await Invoke(
             Part.Two,
             dataType,
-            forrest => forrest.GetVisibleTrees(RCVector.AllCardinal).Count(),
+            forrest => forrest.GetVisibleTrees(RCVector.Cardinals).Count(),
             expected);
 
     private async Task Invoke_Part2(DataType dataType, int? expected = null)
         => await Invoke(
             Part.Two,
             dataType,
-            forrest => forrest.GetTreesVisibleFromTree(RCVector.AllCardinal).Max(tree => tree.CanSee.Aggregate(1, (cur, next) => cur * next.Trees.Count())),
+            forrest => forrest.GetTreesVisibleFromTree(RCVector.Cardinals).Max(tree => tree.CanSee.Aggregate(1, (cur, next) => cur * next.Trees.Count())),
             expected);
 
     private async Task Invoke(Part part, DataType dataType, Func<Forrest, int> sut, int? expected = null)
@@ -61,41 +61,6 @@ public class Solution : TestBase
         {
             result.Should().Be(expected);
         }
-    }
-
-
-    private class RCVector
-    {
-        public static readonly North North = new();
-        public static readonly East East = new();
-        public static readonly South South = new();
-        public static readonly West West = new();
-        public static readonly RCVector[] AllCardinal = new RCVector[] { North, East, South, West };
-
-        public int Row { get; }
-        public int Column { get; }
-        public RCVector(int row, int column)
-        {
-            Row = row;
-            Column = column;
-        }
-    }
-
-    private class North : RCVector
-    {
-        public North() : base(-1, 0) { }
-    }
-    private class East : RCVector
-    {
-        public East() : base(0, 1) { }
-    }
-    private class South : RCVector
-    {
-        public South() : base(1, 0) { }
-    }
-    private class West : RCVector
-    {
-        public West() : base(0, -1) { }
     }
 
     private class Tree
@@ -214,10 +179,10 @@ public class Solution : TestBase
 
         private bool IsOnEdge(Tree tree, RCVector direction) => direction switch
         {
-            North => tree.Position.Row == 0,
-            East => tree.Position.Column == Width - 1,
-            South => tree.Position.Row == Length - 1,
-            West => tree.Position.Column == 0,
+            NorthRCVector => tree.Position.Row == 0,
+            EastRCVector => tree.Position.Column == Width - 1,
+            SouthRCVector => tree.Position.Row == Length - 1,
+            WestRCVector => tree.Position.Column == 0,
             _ => throw new NotImplementedException("Direction not supported")
         };
     }
