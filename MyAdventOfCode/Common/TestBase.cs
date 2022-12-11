@@ -18,8 +18,6 @@ public abstract class TestBase
     private string DayString => $"D{_dayNo:D2}";
     private static string RootPath => Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(System.IO.Directory.GetCurrentDirectory())));
     private string FolderPath => Path.Combine(RootPath, YearString, DayString);
-    private string DataFilePath => Path.Combine(FolderPath, "data.txt");
-    private string ExampleDataFilePath => Path.Combine(FolderPath, "example.data.txt");
     private string TestName => $"{YearString} {DayString}";
 
     public TestBase(ITestOutputHelper output)
@@ -31,16 +29,16 @@ public abstract class TestBase
         Console.SetOut(new ConsoleWriter(_output));
     }
 
-    protected virtual async Task<string[]> GetActualData()
-        => await GetData(DataFilePath);
+    protected virtual async Task<string[]> GetActualData(Part? part)
+        => await GetData(GetActualDataFilePath(part));
 
-    protected virtual async Task<string[]> GetExampleData()
-        => await GetData(ExampleDataFilePath);
+    protected virtual async Task<string[]> GetExampleData(Part? part)
+        => await GetData(GetExampleDataFilePath(part));
 
-    protected virtual async Task<string[]> GetData(DataType dataType) => dataType switch
+    protected virtual async Task<string[]> GetData(DataType dataType, Part? part = null) => dataType switch
     {
-        DataType.Example => await GetExampleData(),
-        DataType.Actual => await GetActualData(),
+        DataType.Example => await GetExampleData(part),
+        DataType.Actual => await GetActualData(part),
         _ => throw new NotImplementedException($"Data type {dataType} not supported"),
     };
 
@@ -60,5 +58,18 @@ public abstract class TestBase
             data = data.Take(data.Length - 1).ToArray();
         }
         return data;
+    }
+
+    private string GetActualDataFilePath(Part? part) => GetFileNameByPart("data.txt", part);
+    private string GetExampleDataFilePath(Part? part) => GetFileNameByPart("example.data.txt", part);
+    private string GetFileNameByPart(string baseFileName, Part? part)
+    {
+        if (part.HasValue)
+        {
+            var withoutExt = Path.GetFileNameWithoutExtension(baseFileName);
+            var ext = Path.GetExtension(baseFileName);
+            baseFileName = $"{withoutExt}.part{(int)part}{ext}";
+        }
+        return Path.Combine(FolderPath, baseFileName);
     }
 }

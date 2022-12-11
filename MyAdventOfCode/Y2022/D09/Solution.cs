@@ -24,36 +24,38 @@ public class Solution : TestBase
 
     [Fact]
     public override async Task Part1_Actual()
-        => await Invoke_Part1(DataType.Actual);
+        => await Invoke_Part1(DataType.Actual, 5735);
 
     [Fact]
     public override async Task Part2_Example()
-        => await Invoke_Part2(DataType.Example);
-
+        => await Invoke_Part2(DataType.Example, 36);
 
     [Fact]
     public override async Task Part2_Actual()
-        => await Invoke_Part2(DataType.Actual);
+        => await Invoke_Part2(DataType.Actual, 2478);
 
     private async Task Invoke_Part1(DataType dataType, int? expected = null)
         => await Invoke(
-            Part.Two,
+            Part.One,
             dataType,
+            2,
             expected);
 
     private async Task Invoke_Part2(DataType dataType, int? expected = null)
         => await Invoke(
             Part.Two,
             dataType,
+            10,
             expected);
 
-    private async Task Invoke(Part part, DataType dataType, int? expected = null)
+    private async Task Invoke(Part part, DataType dataType, int ropeLength, int? expected = null)
     {
-        var data = await GetData(dataType);
+        var data = await GetData(dataType, dataType == DataType.Example ? part : null);
         var tugs = Tug.ParseMany(data);
-        var tugger = new Tugger();
+        var rope = new Rope(ropeLength);
+        var tugger = new Tugger(rope);
         tugger.Tug(tugs);
-        var result = tugger.TailPositionHistory.Distinct().Count();
+        var result = tugger.Rope.Tail.History.Distinct().Count();
 
         WriteResult(part, result);
 
@@ -63,35 +65,48 @@ public class Solution : TestBase
         }
     }
 
-    public class Tugger
+    private class Knot
     {
-        private RCVector _head;
-        private RCVector _tail;
-        public List<RCVector> HeadPositionHistory { get; } = new();
-        public List<RCVector> TailPositionHistory { get; } = new();
-        public RCVector HeadPosition
+        private RCVector _position;
+        public int KnotNumber { get; }
+        public bool IsHead => KnotNumber == 0;
+        public List<RCVector> History { get; } = new();
+        public RCVector Position
         {
-            get { return _head; }
+            get => _position;
             set
             {
-                HeadPositionHistory.Add(value);
-                _head = value;
+                History.Add(value);
+                _position = value;
             }
         }
-        public RCVector TailPosition
+        public Knot(int knotNumber)
         {
-            get { return _tail; }
-            set
-            {
-                TailPositionHistory.Add(value);
-                _tail = value;
-            }
+            Position = RCVector.Default;
+            KnotNumber = knotNumber;
         }
+    }
 
-        public Tugger()
+    private class Rope : List<Knot>
+    {
+        public Knot Head => this.First();
+        public Knot Tail => this.Last();
+        public Rope(int length)
         {
-            HeadPosition = RCVector.Default;
-            TailPosition = RCVector.Default;
+            for (var no = 0; no < length; no++)
+            {
+                Add(new Knot(no));
+            }
+        }
+    }
+
+    private class Tugger
+    {
+        public Rope Rope { get; }
+
+        public Tugger(Rope rope)
+        {
+            Rope = rope;
         }
 
         public void Tug(IEnumerable<Tug> tugs)
@@ -101,22 +116,25 @@ public class Solution : TestBase
                 Console.WriteLine(tug);
                 for (var time = 0; time < tug.Times; time++)
                 {
-                    MoveHead(tug.Direction);
-                    MoveTail();
+                    foreach (var knot in Rope)
+                    {
+                        if (knot.IsHead) MoveHead(tug.Direction);
+                        else MoveTail(knot, Rope.First(k => k.KnotNumber == knot.KnotNumber - 1));
+                    }
                 }
             }
         }
 
         private void MoveHead(RCVector direction)
         {
-            var position = HeadPosition.Move(direction);
+            var position = Rope.Head.Position.Move(direction);
             Console.WriteLine($"Head: Moving to {position}");
-            HeadPosition = position;
+            Rope.Head.Position = position;
         }
 
-        private void MoveTail()
+        private void MoveTail(Knot knot, Knot previousKnot)
         {
-            if (TailPosition == HeadPosition || TailPosition.IsNextTo(HeadPosition))
+            if (knot.Position == previousKnot.Position || knot.Position.IsNextTo(previousKnot.Position))
             {
                 Console.WriteLine("Tail: Not moving");
                 return;
@@ -124,24 +142,24 @@ public class Solution : TestBase
 
             foreach (var cardinal in RCVector.Cardinals)
             {
-                if (TailPosition.IsCardinallyAlignedWith(HeadPosition)
-                    && TailPosition.DistanceFrom(HeadPosition, cardinal) == 2)
+                if (knot.Position.IsCardinallyAlignedWith(previousKnot.Position)
+                    && knot.Position.DistanceFrom(previousKnot.Position, cardinal) == 2)
                 {
-                    var position = TailPosition.Move(cardinal);
+                    var position = knot.Position.Move(cardinal);
                     Console.WriteLine($"Tail: Moving to {position}");
-                    TailPosition = position;
+                    knot.Position = position;
                     return;
                 }
             }
 
             foreach (var ordinal in RCVector.Ordinals)
             {
-                var candidate = TailPosition.Move(ordinal);
+                var candidate = knot.Position.Move(ordinal);
 
-                if (candidate.IsNextTo(HeadPosition))
+                if (candidate.IsNextTo(previousKnot.Position))
                 {
                     Console.WriteLine($"Tail: Moving to {candidate}");
-                    TailPosition = candidate;
+                    knot.Position = candidate;
                     return;
                 }
             }
@@ -150,7 +168,7 @@ public class Solution : TestBase
         }
     }
 
-    public class Tug
+    private class Tug
     {
         public RCVector Direction { get; }
         public int Times { get; }
