@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -15,6 +16,31 @@ namespace MyAdventOfCode.Extensions
             }
             return set;
         }
+
+        public static TAccumulate AggregateUntil<TSource, TAccumulate>(
+            this IEnumerable<TSource> source,
+            TAccumulate seed,
+            Func<TAccumulate, TSource, TAccumulate> func,
+            Func<TAccumulate, bool> predicate)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            var accumulate = seed;
+            foreach (var item in source)
+            {
+                accumulate = func(accumulate, item);
+                if (predicate(accumulate)) break;
+            }
+            return accumulate;
+        }
+
 
         /// <summary>
         /// Lifted straight from <see href="https://stackoverflow.com/a/58826787/6236042"/>

@@ -75,6 +75,14 @@ public class RCVector : IEquatable<RCVector>
                 + "Expected to find exactly one parse candidate but found {count}");
     }
 
+    public static IEnumerable<RCVector> GetNeighbors(RCVector position, RCVector[] directions)
+    {
+        foreach (var direction in directions)
+        {
+            yield return position.Move(direction);
+        }
+    }
+
     public RCVector Move(RCVector direction, int by = 1) => new(Row + direction.Row * by, Column + direction.Column * by);
 
     public int DistanceFrom(RCVector other, RCVector direction)
