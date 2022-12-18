@@ -23,33 +23,52 @@ public class Solution : TestBase
 
     [Fact]
     public override async Task Part1_Example()
-        => await Invoke(Part.One, DataType.Example, 31);
+        => await Invoke_Part1(DataType.Example, 31);
 
     [Fact]
     public override async Task Part1_Actual()
-        => await Invoke(Part.One, DataType.Actual);
+        => await Invoke_Part1(DataType.Actual, 517);
 
     [Fact]
     public override async Task Part2_Example()
-        => await Invoke(Part.Two, DataType.Example);
+        => await Invoke_Part2(DataType.Example, 29);
 
     [Fact]
     public override async Task Part2_Actual()
-        => await Invoke(Part.Two, DataType.Actual);
+        => await Invoke_Part2(DataType.Actual, 512);
 
-    private async Task Invoke(Part part, DataType dataType, int? expected = null)
+    private async Task Invoke_Part1(DataType dataType, int? expected = null)
+        => await Invoke(Part.One, dataType, map => map.GetRoute().Count, expected);
+
+    private async Task Invoke_Part2(DataType dataType, int? expected = null)
+    {
+        await Invoke(Part.Two, dataType, map =>
+        {
+            List<MapCell> result = null;
+            for (int row = 0; row < map.Height; row++)
+            {
+                for (int col = 0; col < map.Width; col++)
+                {
+                    var start = map.Cells[row][col];
+                    if (!map.IsOnPerimeter(start)) continue;
+                    if (start.Display != MapCell.LowestElevationMarker) continue;
+
+                    var candidate = map.GetRoute(start);
+                    if (result == null || (candidate.Count > 0 && candidate.Count < result.Count))
+                    {
+                        result = candidate;
+                    }
+                }
+            }
+            return result.Count;
+        }, expected);
+    }
+
+    private async Task Invoke(Part part, DataType dataType, Func<HeightMap, int> sut, int? expected = null)
     {
         var data = await GetData(dataType);
-
-        // My WIP solution
-        // var map = HeightMap.Parse(data);
-        // var routes = map.GetRoute();
-        // var result = routes.Count;
-
-        // micka190's solution
-        var map = new Cheat.HeightMap(data);
-        var route = Cheat.BreadthFirstSearch.Search(map, map.Start, map.End);
-        var result = route.Count;
+        var map = HeightMap.Parse(data);
+        var result = sut.Invoke(map);
 
         WriteResult(part, result);
 
@@ -61,21 +80,26 @@ public class Solution : TestBase
 
     private class MapCell
     {
+        public static readonly char StartMarker = 'S';
+        public static readonly char DestinationMarker = 'E';
+        public static readonly char LowestElevationMarker = 'a';
+        public static readonly char HighestElevationMarker = 'z';
+
         public RCVector Position { get; }
         public virtual char Display { get; }
         public int Height { get; }
-        public bool IsStart => Display == 'S';
-        public bool IsDestination => Display == 'E';
+        public bool IsStart => Display == StartMarker;
+        public bool IsDestination => Display == DestinationMarker;
 
         private static readonly Dictionary<char, int> GradientMap;
         static MapCell()
         {
-            GradientMap = Enumerable.Range('a', 26)
-                .Select((c, i) => new { c, i = i + 1 })
+            GradientMap = Enumerable.Range(LowestElevationMarker, 26)
+                .Select((c, i) => new { c, i })
                 .ToDictionary(x => Convert.ToChar(x.c), x => x.i);
 
-            GradientMap.Add('S', 0);
-            GradientMap.Add('E', GradientMap['z'] + 1);
+            GradientMap.Add(StartMarker, GradientMap[LowestElevationMarker]);
+            GradientMap.Add(DestinationMarker, GradientMap[HighestElevationMarker]);
         }
 
         public MapCell(char display, int row, int column)
@@ -88,6 +112,8 @@ public class Solution : TestBase
 
     private class HeightMap
     {
+        public int Height => Cells.Count;
+        public int Width => Cells.FirstOrDefault()?.Count ?? 0;
         public List<List<MapCell>> Cells { get; set; }
         public HeightMap(List<List<MapCell>> cells)
         {
@@ -97,9 +123,9 @@ public class Solution : TestBase
         public static HeightMap Parse(string[] input)
             => new(input.Select((line, row) => line.Select((display, col) => new MapCell(display, row, col)).ToList()).ToList());
 
-        public List<MapCell> GetRoute()
+        public List<MapCell> GetRoute(MapCell startAt = null)
         {
-            var start = FindCell(cell => cell.IsStart);
+            var start = startAt ?? FindCell(cell => cell.IsStart);
             var end = FindCell(cell => cell.IsDestination);
 
             // keep track of an expanding ring
@@ -112,10 +138,7 @@ public class Solution : TestBase
             {
                 var current = frontier.Dequeue();
 
-                if (current == end)
-                {
-                    break;
-                }
+                if (current == end) break;
 
                 foreach (var next in GetNeighbors(current, cameFrom))
                 {
@@ -127,8 +150,16 @@ public class Solution : TestBase
             return BuildRoute(start, end, cameFrom);
         }
 
+        public bool IsOnPerimeter(MapCell cell)
+        {
+            var inner = cell.Position.Row >= 1 && cell.Position.Row <= Height - 2 && cell.Position.Column >= 1 && cell.Position.Column <= Width - 2;
+            return !inner;
+        }
+
         private static List<MapCell> BuildRoute(MapCell start, MapCell end, Dictionary<MapCell, MapCell> cameFrom)
         {
+            if (!cameFrom.ContainsKey(end)) return new();
+
             var current = end;
             var path = new List<MapCell>();
 
