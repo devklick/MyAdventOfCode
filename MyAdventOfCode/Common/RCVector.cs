@@ -6,6 +6,8 @@ using System.Reflection;
 using MyAdventOfCode.Common.Attributes;
 
 namespace MyAdventOfCode.Common;
+
+// TODO: Derive from Vector and flip axes, remove duplication
 public class RCVector : IEquatable<RCVector>
 {
     public static readonly RCVector Default = new(0, 0);

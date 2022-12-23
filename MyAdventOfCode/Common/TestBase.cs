@@ -20,13 +20,17 @@ public abstract class TestBase
     private string FolderPath => Path.Combine(RootPath, YearString, DayString);
     private string TestName => $"{YearString} {DayString}";
 
-    public TestBase(ITestOutputHelper output)
+    public TestBase(ITestOutputHelper output, bool suppressConsoleWriteLine = true)
     {
         _output = output;
         var namespaceParts = GetType().Namespace.Split(".");
         _dayNo = int.Parse(new string(namespaceParts.Last().Where(char.IsDigit).ToArray()));
         _yearNo = int.Parse(new string(namespaceParts.Reverse().Skip(1).First().Where(char.IsDigit).ToArray()));
-        Console.SetOut(new ConsoleWriter(_output));
+
+        if (!suppressConsoleWriteLine)
+        {
+            Console.SetOut(new ConsoleWriter(_output));
+        }
     }
 
     protected virtual async Task<string[]> GetActualData(Part? part)
