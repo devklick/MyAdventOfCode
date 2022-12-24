@@ -37,7 +37,7 @@ public class Solution : TestBase
 
     [Fact]
     public override async Task Part2_Actual()
-        => await Invoke(Part.Two, DataType.Actual, true, 1);
+        => await Invoke(Part.Two, DataType.Actual, true, 1, 25500);
 
     private async Task Invoke(Part part, DataType dataType, bool infiniteWidth = false, int heightExtension = 0, int? expected = null)
     {
@@ -214,7 +214,11 @@ public class Solution : TestBase
 
                 if (!PositionInBounds(position))
                 {
+                    // If the out-of-bounds position is moving along the horizontal axis but infinite width is enabled, 
+                    // we dont want o treat this as out of bounds. Instead, we just want to treat this as not a candidate position, 
+                    // moving on to the next one (if there are any).
                     if (horizontal && InfiniteWidth) continue;
+
                     throw new IndexOutOfRangeException();
                 }
 
