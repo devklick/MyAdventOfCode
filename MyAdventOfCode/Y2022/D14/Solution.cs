@@ -19,36 +19,35 @@ namespace MyAdventOfCode.Y2022.D14;
 
 public class Solution : TestBase
 {
-    public Solution(ITestOutputHelper output) : base(output, suppressConsoleWriteLine: false)
+    private static readonly bool SuppressConsoleWriteLine = true;
+    public Solution(ITestOutputHelper output) : base(output, SuppressConsoleWriteLine)
     { }
 
     [Fact]
     public override async Task Part1_Example()
-        => await Invoke(Part.One, DataType.Example, 24);
+        => await Invoke(Part.One, DataType.Example, false, 0, 24);
 
     [Fact]
     public override async Task Part1_Actual()
-        => await Invoke(Part.One, DataType.Actual, 828);
+        => await Invoke(Part.One, DataType.Actual, false, 0, 828);
 
     [Fact]
     public override async Task Part2_Example()
-        => await Invoke_Part2(DataType.Example);
+        => await Invoke(Part.Two, DataType.Example, true, 1, 93);
 
     [Fact]
     public override async Task Part2_Actual()
-        => await Invoke_Part2(DataType.Actual);
+        => await Invoke(Part.Two, DataType.Actual, true, 1);
 
-    private async Task Invoke_Part2(DataType dataType, int? expected = null)
-    {
-
-    }
-
-    private async Task Invoke(Part part, DataType dataType, int? expected = null)
+    private async Task Invoke(Part part, DataType dataType, bool infiniteWidth = false, int heightExtension = 0, int? expected = null)
     {
         var data = await GetData(dataType);
-        var logWindow = new Rectangle(494, 0, 503, 9);
+        // The log window ensures that if logging is enabled, only cells who's position
+        // is within the bounds of the rectangle ge logged to the console. 
+        // This helps with debugging the example, trying to match the same output shown 
+        var logWindow = new Rectangle(494 - 10, 0, 503 + 10, 9 + heightExtension);
         var sandEntryPoint = new SandEntryPoint(500, 0);
-        var cave = Cave.Parse(data, sandEntryPoint, logWindow);
+        var cave = Cave.Parse(data, sandEntryPoint, !SuppressConsoleWriteLine, logWindow, infiniteWidth, heightExtension);
         var result = cave.EnableSand();
 
         WriteResult(part, result);
@@ -90,10 +89,7 @@ public class Solution : TestBase
         { }
 
         public Sand Spawn()
-        {
-            var position = Position.Move(Vector.South);
-            return new(position.X, position.Y);
-        }
+            => new(Position.X, Position.Y);
     }
 
     private class Rock : Cell, IEquatable<Rock>
@@ -120,16 +116,22 @@ public class Solution : TestBase
     {
         public SandEntryPoint SandEntryPoint { get; }
         public Rectangle LogWindow { get; }
-        public Cell[,] Cells { get; }
-        public int Width => Cells.GetLength(0);
-        public int Height => Cells.GetLength(1);
-        public readonly Vector[] GravityOrder = new Vector[] { Vector.South, Vector.SouthWest, Vector.SouthEast };
+        public Dictionary<(int, int), Cell> Cells { get; }
+        public int Width { get; }
+        public int Height { get; }
+        public bool InfiniteWidth { get; }
+        public static readonly Vector[] GravitationalPullOrder = new Vector[] { Vector.South, Vector.SouthWest, Vector.SouthEast };
+        private readonly bool _loggingEnabled;
 
-        public Cave(Cell[,] cells, SandEntryPoint sandEntryPoint, Rectangle logWindow)
+        public Cave(Dictionary<(int, int), Cell> cells, int width, int height, SandEntryPoint sandEntryPoint, bool enableLogging, Rectangle logWindow, bool infiniteWidth = false)
         {
             Cells = cells;
             SandEntryPoint = sandEntryPoint;
             LogWindow = logWindow;
+            Width = width;
+            Height = height;
+            InfiniteWidth = infiniteWidth;
+            _loggingEnabled = enableLogging;
         }
 
         public int EnableSand()
@@ -144,7 +146,13 @@ public class Solution : TestBase
 
                 var nextPosition = ApplyGravity(sand);
 
-                if (nextPosition == null) break;
+                // If the sand has spanned and cannot move in any direction, 
+                // we have reached the limit (i.e. part 2 scenario)
+                if (nextPosition == null)
+                {
+                    sandCount++;
+                    break;
+                }
 
                 while (nextPosition != null)
                 {
@@ -159,6 +167,9 @@ public class Solution : TestBase
                     }
                     catch (IndexOutOfRangeException)
                     {
+                        // If we've reached the edge of the boundary, this position is no good. 
+                        // We can continue checking for other positions, but if none are found, 
+                        // we've reached the limit, i.e. the part 1 scenario
                         nextPosition = null;
                         enabled = false;
                         AssignCell(new Air(sand.Position.X, sand.Position.Y));
@@ -176,6 +187,7 @@ public class Solution : TestBase
         private Sand SpawnSand()
         {
             var sand = SandEntryPoint.Spawn();
+            if (sand.Position == SandEntryPoint.Position) return null;
             AssignCell(sand);
             return sand;
         }
@@ -189,17 +201,20 @@ public class Solution : TestBase
 
         private void AssignCell(Cell cell)
         {
-            Cells[cell.Position.X, cell.Position.Y] = cell;
+            Cells[(cell.Position.X, cell.Position.Y)] = cell;
         }
 
         private Vector ApplyGravity(Sand sand)
         {
-            foreach (var direction in GravityOrder)
+            foreach (var direction in GravitationalPullOrder)
             {
                 var position = sand.Position.Move(direction);
 
+                bool horizontal = position.X != 0;
+
                 if (!PositionInBounds(position))
                 {
+                    if (horizontal && InfiniteWidth) continue;
                     throw new IndexOutOfRangeException();
                 }
 
@@ -212,12 +227,22 @@ public class Solution : TestBase
         }
 
         public bool PositionAvailable(Vector position)
-            => Cells[position.X, position.Y] is Air;
+        {
+            if (InfiniteWidth)
+            {
+                Cells.TryGetValue((position.X, position.Y), out var cell);
+                return (cell == null && PositionInBounds(position)) || cell is Air;
+            }
+
+            return Cells[(position.X, position.Y)] is Air;
+        }
 
         private bool PositionInBounds(Vector position)
-            => position.X < Cells.GetLength(0) && position.Y < Cells.GetLength(1);
+        {
+            return InfiniteWidth ? position.Y < Height : position.X < Width && position.Y < Height;
+        }
 
-        public static Cave Parse(string[] input, SandEntryPoint sandEntryPoint, Rectangle logWindow)
+        public static Cave Parse(string[] input, SandEntryPoint sandEntryPoint, bool enableLogging, Rectangle logWindow, bool infiniteWidth = false, int hightExtension = 0)
         {
             int maxX = sandEntryPoint.Position.X, maxY = sandEntryPoint.Position.Y;
 
@@ -244,10 +269,13 @@ public class Solution : TestBase
                 }
             }
 
-            return BuildCave(maxX + 1, maxY + 1, rocks, sandEntryPoint, logWindow);
+            return BuildCave(maxX + 1, maxY + 1 + hightExtension, rocks, sandEntryPoint, enableLogging, logWindow, infiniteWidth);
         }
 
-        public void Draw() => Console.WriteLine(ToString());
+        public void Draw()
+        {
+            if (_loggingEnabled) Console.WriteLine(ToString());
+        }
 
         public override string ToString()
         {
@@ -257,7 +285,10 @@ public class Solution : TestBase
             {
                 for (int x = LogWindow.From.X; x <= LogWindow.To.X; x++)
                 {
-                    sb.Append(Cells[x, y].Sprite);
+                    if (Cells.TryGetValue((x, y), out var cell))
+                    {
+                        sb.Append(cell.Sprite);
+                    }
                 }
                 sb.AppendLine();
             }
@@ -265,23 +296,23 @@ public class Solution : TestBase
             return sb.ToString();
         }
 
-        private static Cave BuildCave(int maxX, int maxY, IEnumerable<Rock> rocks, SandEntryPoint sandEntryPoint, Rectangle logWindow)
+        private static Cave BuildCave(int maxX, int maxY, IEnumerable<Rock> rocks, SandEntryPoint sandEntryPoint, bool enableLogging, Rectangle logWindow, bool infiniteWidth)
         {
             // The max values are inclusive indexes, so we need to +1 when specifying the array lengths.
-            Cell[,] cells = new Cell[maxX + 1, maxY + 1];
+            Dictionary<(int, int), Cell> cells = new();
 
             for (int x = 0; x <= maxX; x++)
             {
                 for (int y = 0; y <= maxY; y++)
                 {
                     var rock = rocks.FirstOrDefault(r => r.Position.X == x && r.Position.Y == y);
-                    cells[x, y] = (Cell)rock ?? new Air(x, y);
+                    cells[(x, y)] = (Cell)rock ?? new Air(x, y);
                 }
             }
 
-            cells[sandEntryPoint.Position.X, sandEntryPoint.Position.Y] = sandEntryPoint;
+            cells[(sandEntryPoint.Position.X, sandEntryPoint.Position.Y)] = sandEntryPoint;
 
-            return new Cave(cells, sandEntryPoint, logWindow);
+            return new Cave(cells, maxX, maxY, sandEntryPoint, enableLogging, logWindow, infiniteWidth);
         }
     }
 }
