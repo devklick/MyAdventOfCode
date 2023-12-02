@@ -30,7 +30,7 @@ public class Solution : TestBase
 
     [Fact]
     public override async Task Part2_Actual()
-        => await Invoke(Part.Two, DataType.Actual, 205805);
+        => await Invoke(Part.Two, DataType.Actual, 54728);
 
     private async Task Invoke(Part part, DataType dataType, int? expected = null)
     {
