@@ -16,7 +16,7 @@ public abstract class TestBase
     private readonly int _yearNo;
     private string YearString => $"Y{_yearNo}";
     private string DayString => $"D{_dayNo:D2}";
-    private static string RootPath => Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(System.IO.Directory.GetCurrentDirectory())));
+    private static string RootPath => Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Directory.GetCurrentDirectory())));
     private string FolderPath => Path.Combine(RootPath, YearString, DayString);
     private string TestName => $"{YearString} {DayString}";
 
@@ -34,10 +34,10 @@ public abstract class TestBase
     }
 
     protected virtual async Task<string[]> GetActualData(Part? part)
-        => await GetData(GetActualDataFilePath(part));
+        => await TryGetData(new[] { GetActualDataFilePath(part), GetActualDataFilePath() });
 
     protected virtual async Task<string[]> GetExampleData(Part? part)
-        => await GetData(GetExampleDataFilePath(part));
+        => await TryGetData(new[] { GetExampleDataFilePath(part), GetExampleDataFilePath() });
 
     protected virtual async Task<string[]> GetData(DataType dataType, Part? part = null) => dataType switch
     {
@@ -64,8 +64,8 @@ public abstract class TestBase
         return data;
     }
 
-    private string GetActualDataFilePath(Part? part) => GetFileNameByPart("data.txt", part);
-    private string GetExampleDataFilePath(Part? part) => GetFileNameByPart("example.data.txt", part);
+    private string GetActualDataFilePath(Part? part = null) => GetFileNameByPart("data.txt", part);
+    private string GetExampleDataFilePath(Part? part = null) => GetFileNameByPart("example.data.txt", part);
     private string GetFileNameByPart(string baseFileName, Part? part)
     {
         if (part.HasValue)
@@ -75,5 +75,19 @@ public abstract class TestBase
             baseFileName = $"{withoutExt}.part{(int)part}{ext}";
         }
         return Path.Combine(FolderPath, baseFileName);
+    }
+
+    private async Task<string[]> TryGetData(string[] paths)
+    {
+        foreach (var path in paths)
+        {
+            try
+            {
+                return await GetData(path);
+            }
+            catch
+            { }
+        }
+        throw new Exception("Unable to find data for the specified paths");
     }
 }
