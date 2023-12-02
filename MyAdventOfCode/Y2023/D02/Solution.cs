@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 using FluentAssertions;
@@ -25,6 +23,7 @@ public class Solution : TestBase
             Part.One,
             DataType.Example,
             new GameConfiguration(red: 12, green: 13, blue: 14),
+            (games) => games.GetValidGameResults().Sum(g => g.GameId),
             8);
 
     [Fact]
@@ -33,6 +32,7 @@ public class Solution : TestBase
             Part.One,
             DataType.Actual,
             new GameConfiguration(red: 12, green: 13, blue: 14),
+            (games) => games.GetValidGameResults().Sum(g => g.GameId),
             2486);
 
     [Fact]
@@ -40,25 +40,28 @@ public class Solution : TestBase
         => await Invoke(
             Part.Two,
             DataType.Example,
-            new GameConfiguration(red: 12, green: 13, blue: 14));
+            new GameConfiguration(red: 12, green: 13, blue: 14),
+            (games) => games.Results.Sum(r => r.GetMinimumRequiredConfig().Power),
+            2286);
 
     [Fact]
     public override async Task Part2_Actual()
         => await Invoke(
             Part.Two,
             DataType.Actual,
-            new GameConfiguration(red: 12, green: 13, blue: 14));
+            new GameConfiguration(red: 12, green: 13, blue: 14),
+            (games) => games.Results.Sum(r => r.GetMinimumRequiredConfig().Power),
+            2286);
 
     record Game(int Num, IReadOnlyList<Set> Sets);
 
     record Set(int Red, int Green, int Blue);
 
-    private async Task Invoke(Part part, DataType dataType, GameConfiguration config, int? expected = null)
+    private async Task Invoke(Part part, DataType dataType, GameConfiguration config, Func<Games, int> getResult, int? expected = null)
     {
         var data = await GetData(dataType, part);
         var games = Games.Parse(data, config);
-        var validGames = games.GetValidGameResults();
-        var result = validGames.Sum(g => g.GameId);
+        var result = getResult(games);
 
         WriteResult(part, result);
 
@@ -72,7 +75,7 @@ public class Solution : TestBase
 
     private class GameHand
     {
-        public Dictionary<GamePiece, int> GamePieces = new();
+        public IReadOnlyDictionary<GamePiece, int> GamePieces;
         public bool IsValid { get; }
 
         public GameHand(Dictionary<GamePiece, int> gamePieces, bool isValid)
@@ -118,6 +121,12 @@ public class Solution : TestBase
             IsValid = _hands.All(h => h.IsValid);
         }
 
+        public GameConfiguration GetMinimumRequiredConfig()
+            => new(
+                red: _hands.Max(x => x.GamePieces.GetValueOrDefault(GamePiece.Red)),
+                green: _hands.Max(x => x.GamePieces.GetValueOrDefault(GamePiece.Green)),
+                blue: _hands.Max(x => x.GamePieces.GetValueOrDefault(GamePiece.Blue)));
+
         public static GameResult Parse(string data, GameConfiguration config)
         {
             var id = ParseGameId(data);
@@ -135,15 +144,15 @@ public class Solution : TestBase
 
     private class Games
     {
-        private readonly List<GameResult> _results;
+        public List<GameResult> Results { get; }
 
         public Games(List<GameResult> results)
         {
-            _results = results;
+            Results = results;
         }
 
         public IEnumerable<GameResult> GetValidGameResults()
-            => _results.Where(r => r.IsValid);
+            => Results.Where(r => r.IsValid);
 
         public static Games Parse(string[] lines, GameConfiguration config)
         {
@@ -161,6 +170,8 @@ public class Solution : TestBase
     private class GameConfiguration
     {
         public IReadOnlyDictionary<GamePiece, int> Totals { get; }
+
+        public int Power => Totals.Aggregate(1, (power, current) => current.Value * power);
 
         public GameConfiguration(int red, int green, int blue)
         {
