@@ -136,7 +136,6 @@ public class Solution : TestBase
     {
         public int Value { get; set; }
         public (RCVector Start, RCVector End) Position { get; set; }
-        public List<RCVector> Border { get; set; }
         public (char Value, RCVector Position) Symbol { get; set; }
     }
 
@@ -193,11 +192,7 @@ public class Solution : TestBase
                 {
                     Position = (startPosition, endPosition),
                     Symbol = getSymbolResult.Value,
-                    Value = number,
-                    Border = new Rectangle(startPosition.ToVector(), endPosition.ToVector())
-                        .GetBorderPositions()
-                        .Select(position => new RCVector(position.Y, position.X))
-                        .ToList()
+                    Value = number
                 };
             }
 
