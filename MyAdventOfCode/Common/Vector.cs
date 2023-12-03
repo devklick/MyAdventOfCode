@@ -96,6 +96,9 @@ public class Vector : IEquatable<Vector>
         return false;
     }
 
+    public RCVector ToRCVector()
+        => new(Y, X);
+
     public bool Equals(Vector other)
         => other != null && other.X == X && other.Y == Y;
 

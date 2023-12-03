@@ -112,6 +112,9 @@ public class RCVector : IEquatable<RCVector>
         return false;
     }
 
+    public Vector ToVector()
+        => new(Column, Row);
+
     public bool Equals(RCVector other)
         => other != null && other.Column == Column && other.Row == Row;
 
