@@ -26,6 +26,11 @@ public class Rectangle
         From = from;
         To = to;
     }
+    public Rectangle(RCVector from, RCVector to)
+    {
+        From = new Vector(from.Column, from.Row);
+        To = new Vector(to.Column, to.Row);
+    }
 
 
     public List<Vector> GetBorderPositions()
@@ -50,6 +55,10 @@ public class Rectangle
 
         return positions;
     }
+
+    public bool Contains(Vector position)
+        => position.X >= MinX && position.Y <= MaxY
+            && position.Y >= MinY && position.Y <= MaxY;
 
     public bool IsEdge(Vector position)
         => position.X == MinX || position.X == MaxX

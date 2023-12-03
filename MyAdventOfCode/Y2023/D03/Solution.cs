@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 
 using MyAdventOfCode.Common;
+using MyAdventOfCode.Extensions;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -22,6 +23,7 @@ public class Solution : TestBase
         => await Invoke(
             Part.One,
             DataType.Example,
+            (schematic) => schematic.PartNos.Sum(x => x.Value),
             4361);
 
     [Fact]
@@ -29,31 +31,39 @@ public class Solution : TestBase
         => await Invoke(
             Part.One,
             DataType.Actual,
+            (schematic) => schematic.PartNos.Sum(x => x.Value),
             537732);
 
+    /*
+        Part 2 is far from optimal, but it's easier easier than refactoring 
+        the solution for Part 1 to factor in these new requirements.
+    */
     [Fact]
     public override async Task Part2_Example()
         => await Invoke(
             Part.Two,
-            DataType.Actual,
-            0);
+            DataType.Example,
+            (schematic) => schematic.Gears.Sum(x => x.Ratio),
+            467835);
 
     [Fact]
     public override async Task Part2_Actual()
         => await Invoke(
             Part.Two,
             DataType.Actual,
+            (schematic) => schematic.Gears.Sum(x => x.Ratio),
             0);
 
     record Game(int Num, IReadOnlyList<Set> Sets);
 
     record Set(int Red, int Green, int Blue);
 
-    private async Task Invoke(Part part, DataType dataType, int? expected = null)
+    private async Task Invoke(Part part, DataType dataType, Func<EngineSchematic, int> getResult, int? expected = null)
     {
         var data = await GetData(dataType, part);
         var partNos = new PartNoParser(data).GetPartNos();
-        var result = partNos.Sum(x => x.Value);
+        var schematic = new EngineSchematic(partNos);
+        var result = getResult(schematic);
 
         WriteResult(part, result);
 
@@ -63,20 +73,70 @@ public class Solution : TestBase
         }
     }
 
+
     private class EngineSchematic
     {
-        private readonly List<PartNo> _partNos;
+        public List<PartNo> PartNos { get; }
+        public List<Gear> Gears { get; private set; }
+
 
         public EngineSchematic(List<PartNo> partNos)
         {
-            _partNos = partNos;
+            PartNos = partNos;
+            Gears = GetGears();
         }
+
+        private List<Gear> GetGears()
+        {
+            var gears = new List<Gear>();
+
+            // This is terribly inefficient. It loops through the entire 
+            // list of part numbers several times. I should really go with 
+            // another approach, but this involves the least amount of reworking
+            // to the solution of part 1.
+            for (var i = 0; i < PartNos.Count; i++)
+            {
+                var partNo = PartNos[i];
+
+                // If we've already counted this one as part of another gear, skip it
+                if (gears.Any(g => g.PartNo1 == partNo || g.PartNo2 == partNo))
+                {
+                    continue;
+                }
+
+                foreach (var otherPartNo in PartNos)
+                {
+                    // Avoid matching on self
+                    if (otherPartNo == partNo) continue;
+
+                    // If the two parts share the same position, it's a gear
+                    if (partNo.Symbol.Position == otherPartNo.Symbol.Position)
+                    {
+                        gears.Add(new Gear
+                        {
+                            PartNo1 = partNo,
+                            PartNo2 = otherPartNo
+                        });
+                    }
+                }
+
+            }
+            return gears;
+        }
+    }
+
+    private class Gear
+    {
+        public PartNo PartNo1 { get; set; }
+        public PartNo PartNo2 { get; set; }
+        public int Ratio => PartNo1.Value * PartNo2.Value;
     }
 
     private class PartNo
     {
         public int Value { get; set; }
         public (RCVector Start, RCVector End) Position { get; set; }
+        public List<RCVector> Border { get; set; }
         public (char Value, RCVector Position) Symbol { get; set; }
     }
 
@@ -133,7 +193,11 @@ public class Solution : TestBase
                 {
                     Position = (startPosition, endPosition),
                     Symbol = getSymbolResult.Value,
-                    Value = number
+                    Value = number,
+                    Border = new Rectangle(startPosition.ToVector(), endPosition.ToVector())
+                        .GetBorderPositions()
+                        .Select(position => new RCVector(position.Y, position.X))
+                        .ToList()
                 };
             }
 
