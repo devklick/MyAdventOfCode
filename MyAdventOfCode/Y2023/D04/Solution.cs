@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
 using FluentAssertions;
@@ -22,30 +23,37 @@ public class Solution : TestBase
     public override async Task Part1_Example()
         => await Invoke(
             Part.One,
-            DataType.Example);
+            DataType.Example,
+            (cards) => cards.Sum(c => c.PointsWon),
+            13);
 
     [Fact]
     public override async Task Part1_Actual()
         => await Invoke(
             Part.One,
-            DataType.Actual);
+            DataType.Actual,
+            (cards) => cards.Sum(c => c.PointsWon),
+            23847);
 
     [Fact]
     public override async Task Part2_Example()
         => await Invoke(
             Part.Two,
-            DataType.Example);
+            DataType.Example,
+            (cards) => cards.Sum(c => c.PointsWon));
 
     [Fact]
     public override async Task Part2_Actual()
         => await Invoke(
             Part.Two,
-            DataType.Actual);
+            DataType.Actual,
+            (cards) => cards.Sum(c => c.PointsWon));
 
-    private async Task Invoke(Part part, DataType dataType, int? expected = null)
+    private async Task Invoke(Part part, DataType dataType, Func<IEnumerable<ScratchCard>, int> getResult, int? expected = null)
     {
         var data = await GetData(dataType, part);
-        var result = 0;
+        var cards = ScratchCard.ParseMany(data);
+        var result = getResult(cards);
 
         WriteResult(part, result);
 
@@ -55,7 +63,7 @@ public class Solution : TestBase
         }
     }
 
-    public class ScratchCardNumber 
+    public class ScratchCardNumber
     {
         private readonly int _value;
         public bool Revealed { get; }
@@ -71,20 +79,50 @@ public class Solution : TestBase
     public class ScratchCard
     {
         public int Id { get; }
-        public List<ScratchCardNumber> Numbers { get; }
-    }
+        public IEnumerable<ScratchCardNumber> WinningNumbers { get; }
+        public IEnumerable<int> PlayerNumbers { get; }
+        public IEnumerable<ScratchCardNumber> PlayerWinningNumbers => WinningNumbers.Where(n => PlayerNumbers.Contains(n.Value));
+        public int PointsWon => GetPointsWon();
 
-    public class Pick
-    {
-        public List<int> Numbers { get; }
+        public ScratchCard(int id, IEnumerable<ScratchCardNumber> winningNumbers, IEnumerable<int> playerNumbers)
+        {
+            Id = id;
+            WinningNumbers = winningNumbers;
+            PlayerNumbers = playerNumbers;
+        }
 
-        // There seems to be a one-to-one relationship between
-        // picked numbers and a scratch card, so we only 
-        // need one scratch card here for now
-        public ScratchCard ScratchCard { get; }
+        private int GetPointsWon()
+        {
+            return PlayerWinningNumbers.Aggregate(0, (total, current) =>
+            {
+                return total == 0 ? 1 : total * 2;
+            });
+        }
 
-        public IEnumerable<ScratchCardNumber> WinningNumbers => ScratchCard.Numbers.Where(n => Numbers.Contains(n.Value));
+        public static IEnumerable<ScratchCard> ParseMany(string[] data)
+            => data.Select(Parse);
 
-        public int PointsWon => WinningNumbers.Aggregate(1, (total, current) => total * 2);
+        public static ScratchCard Parse(string data)
+        {
+            var split = data.Split(':');
+            var cardId = int.Parse(split.First().Split(' ').Last());
+            var (scratchCardNumbers, playerNumbers) = ParseNumbers(split.Last());
+
+            return new(cardId, scratchCardNumbers, playerNumbers);
+        }
+
+        private static (IEnumerable<ScratchCardNumber>, IEnumerable<int>) ParseNumbers(string data)
+        {
+            var split = data.Split('|');
+            var scratchCardNumbers = ParseWinningNumbers(split.First().Trim());
+            var playerNumbers = ParsePlayerNumbers(split.Last().Trim());
+            return (scratchCardNumbers, playerNumbers);
+        }
+
+        private static IEnumerable<int> ParsePlayerNumbers(string data)
+            => data.Split().Where(d => !string.IsNullOrEmpty(d)).Select(int.Parse);
+
+        private static IEnumerable<ScratchCardNumber> ParseWinningNumbers(string data)
+            => data.Split().Where(d => !string.IsNullOrEmpty(d)).Select(n => new ScratchCardNumber(int.Parse(n)));
     }
 }
