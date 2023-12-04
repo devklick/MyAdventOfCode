@@ -54,10 +54,6 @@ public class Solution : TestBase
             (schematic) => schematic.Gears.Sum(x => x.Ratio),
             0);
 
-    record Game(int Num, IReadOnlyList<Set> Sets);
-
-    record Set(int Red, int Green, int Blue);
-
     private async Task Invoke(Part part, DataType dataType, Func<EngineSchematic, int> getResult, int? expected = null)
     {
         var data = await GetData(dataType, part);
