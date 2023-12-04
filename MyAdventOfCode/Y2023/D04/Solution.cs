@@ -24,7 +24,7 @@ public class Solution : TestBase
         => await Invoke(
             Part.One,
             DataType.Example,
-            (cards) => cards.Sum(c => c.PointsWon),
+            (cards) => cards.Sum(c => c.Value.PointsWon),
             13);
 
     [Fact]
@@ -32,7 +32,7 @@ public class Solution : TestBase
         => await Invoke(
             Part.One,
             DataType.Actual,
-            (cards) => cards.Sum(c => c.PointsWon),
+            (cards) => cards.Sum(c => c.Value.PointsWon),
             23847);
 
     [Fact]
@@ -40,19 +40,21 @@ public class Solution : TestBase
         => await Invoke(
             Part.Two,
             DataType.Example,
-            (cards) => cards.Sum(c => c.PointsWon));
+            (cards) => cards.GetWinningCards().Sum(c => cards.GetPrizesForCard(c).Count()) + cards.Count,
+            30);
 
     [Fact]
     public override async Task Part2_Actual()
         => await Invoke(
             Part.Two,
             DataType.Actual,
-            (cards) => cards.Sum(c => c.PointsWon));
+            (cards) => cards.GetWinningCards().Sum(c => cards.GetPrizesForCard(c).Count()) + cards.Count,
+            8570000);
 
-    private async Task Invoke(Part part, DataType dataType, Func<IEnumerable<ScratchCard>, int> getResult, int? expected = null)
+    private async Task Invoke(Part part, DataType dataType, Func<ScratchCardCollection, int> getResult, int? expected = null)
     {
         var data = await GetData(dataType, part);
-        var cards = ScratchCard.ParseMany(data);
+        var cards = new ScratchCardCollection(ScratchCard.ParseMany(data));
         var result = getResult(cards);
 
         WriteResult(part, result);
@@ -63,7 +65,45 @@ public class Solution : TestBase
         }
     }
 
-    public class ScratchCardNumber
+    private class ScratchCardCollection : Dictionary<int, ScratchCard>
+    {
+        public ScratchCardCollection(IEnumerable<ScratchCard> cards)
+            : base(cards.ToDictionary(key => key.Id, value => value))
+        { }
+
+        public IEnumerable<ScratchCard> GetWinningCards()
+            => Values.Where(c => c.MatchedNumbers.Any());
+
+        public IEnumerable<ScratchCard> GetPrizesForCard(ScratchCard card)
+            => GetPrizesForCard(card, card.Id);
+
+        private IEnumerable<ScratchCard> GetPrizesForCard(ScratchCard card, int sourceCardId)
+        {
+            // recursive yield is EXTREMELY slow. 
+            // There's probably a much better way of doing this, 
+            // but I've reached this point and got the right answer 
+            // so I'm not gonna refactor it
+            foreach (var prize in GetCardSequence(card.Id + 1, card.MatchedNumbers.Count()))
+            {
+                yield return prize;
+
+                foreach (var childPrize in GetPrizesForCard(prize, sourceCardId))
+                {
+                    yield return childPrize;
+                }
+            }
+        }
+
+        private IEnumerable<ScratchCard> GetCardSequence(int startCardId, int count)
+        {
+            for (var i = startCardId; i < startCardId + count; i++)
+            {
+                yield return this[i];
+            }
+        }
+    }
+
+    partial class ScratchCardNumber
     {
         private readonly int _value;
         public bool Revealed { get; }
@@ -76,28 +116,24 @@ public class Solution : TestBase
         }
     }
 
-    public class ScratchCard
+    private class ScratchCard
     {
         public int Id { get; }
         public IEnumerable<ScratchCardNumber> WinningNumbers { get; }
         public IEnumerable<int> PlayerNumbers { get; }
-        public IEnumerable<ScratchCardNumber> PlayerWinningNumbers => WinningNumbers.Where(n => PlayerNumbers.Contains(n.Value));
-        public int PointsWon => GetPointsWon();
+        public IEnumerable<ScratchCardNumber> MatchedNumbers => WinningNumbers.Where(n => PlayerNumbers.Contains(n.Value));
+        public int PointsWon { get; }
 
         public ScratchCard(int id, IEnumerable<ScratchCardNumber> winningNumbers, IEnumerable<int> playerNumbers)
         {
             Id = id;
             WinningNumbers = winningNumbers;
             PlayerNumbers = playerNumbers;
+            PointsWon = GetPointsWon();
         }
 
         private int GetPointsWon()
-        {
-            return PlayerWinningNumbers.Aggregate(0, (total, current) =>
-            {
-                return total == 0 ? 1 : total * 2;
-            });
-        }
+            => MatchedNumbers.Aggregate(0, (total, current) => total == 0 ? 1 : total * 2);
 
         public static IEnumerable<ScratchCard> ParseMany(string[] data)
             => data.Select(Parse);
