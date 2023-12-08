@@ -7,6 +7,29 @@ namespace MyAdventOfCode.Extensions
 
     public static class EnumerableExtensions
     {
+        public static void ForEach<T>(this IEnumerable<T> sequence, Action<T, int> action)
+        {
+            int i = 0;
+            foreach (T item in sequence)
+            {
+                action(item, i);
+                i++;
+            }
+        }
+
+        public static int Replace<T>(this IList<T> source, T oldValue, T newValue)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            var index = source.IndexOf(oldValue);
+
+            if (index != -1)
+                source[index] = newValue;
+
+            return index;
+        }
+
         public static IEnumerable<T> IntersectAll<T>(this IEnumerable<IEnumerable<T>> collections)
         {
             var set = new HashSet<T>(collections.First());
