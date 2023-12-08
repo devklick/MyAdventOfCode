@@ -99,7 +99,9 @@ public partial class Solution : TestBase
             while (!condition())
             {
                 var next = _directions[_currentIndex];
+
                 _currentIndex++;
+
                 if (_currentIndex > _directions.Count - 1)
                 {
                     _currentIndex = 0;
@@ -112,22 +114,19 @@ public partial class Solution : TestBase
     private class Node
     {
         public string Name { get; }
-        public Dictionary<Direction, Node> Neighbors { get; }
+        private readonly Dictionary<Direction, Node> _neighbors;
 
         public Node(string name)
         {
             Name = name;
-            Neighbors = new Dictionary<Direction, Node>();
+            _neighbors = new Dictionary<Direction, Node>();
         }
 
-        // public override string ToString()
-        //     => $"{Name} = ({Neighbors[Direction.Left]},{Neighbors[Direction.Right]})";
-
         public void AddNeighbor(Direction direction, Node neighbor)
-            => Neighbors[direction] = neighbor;
+            => _neighbors[direction] = neighbor;
 
         public Node GetNeighbor(Direction direction)
-            => Neighbors[direction];
+            => _neighbors[direction];
     }
 
     private partial class Network
@@ -136,39 +135,38 @@ public partial class Solution : TestBase
         private static partial Regex NodeNameRegex();
 
         public Dictionary<string, Node> Nodes { get; }
-        public List<Node> StartNodes;
-        public List<Node> End;
-        public List<Node> Current { get; private set; }
+        private readonly Node[] _startNodes;
+        private readonly Node[] _endNodes;
+        private readonly Node[] _current;
 
         public Network(Dictionary<string, Node> nodes, Func<Node, bool> identifyStartNodes = null, Func<Node, bool> identifyEndNodes = null)
         {
             Nodes = nodes;
-            StartNodes = FindMatchingNodes(identifyStartNodes, "AAA");
-            End = FindMatchingNodes(identifyEndNodes, "ZZZ");
-            Current = new List<Node>(StartNodes);
+            _startNodes = FindMatchingNodes(identifyStartNodes, "AAA");
+            _endNodes = FindMatchingNodes(identifyEndNodes, "ZZZ");
+            _current = new Node[_startNodes.Length];
+            _startNodes.CopyTo(_current, 0);
         }
 
         public int NavigateToEnd(CircularNav navigation)
         {
             var steps = 0;
-            foreach (var direction in navigation.EnumerateUntil(() => Current.SequenceEqual(End)))
+            foreach (var direction in navigation.EnumerateUntil(() => _current.SequenceEqual(_endNodes)))
             {
-                for (var c = 0; c < Current.Count; c++)
+                for (var c = 0; c < _current.Length; c++)
                 {
-                    var current = Current[c];
-                    var newCurrent = current.GetNeighbor(direction);
-                    Current.Replace(current, newCurrent);
+                    _current[c] = _current[c].GetNeighbor(direction);
                 }
                 steps++;
             }
             return steps;
         }
 
-        private List<Node> FindMatchingNodes(Func<Node, bool> condition, string defaultNodeName)
+        private Node[] FindMatchingNodes(Func<Node, bool> condition, string defaultNodeName)
         {
             return condition != null
-                ? Nodes.Where(x => condition(x.Value)).Select(n => n.Value).ToList()
-                : new List<Node> { Nodes[defaultNodeName] };
+                ? Nodes.Where(x => condition(x.Value)).Select(n => n.Value).ToArray()
+                : new[] { Nodes[defaultNodeName] };
         }
 
         public static Network Parse(string[] data, Func<Node, bool> identifyStartNodes = null, Func<Node, bool> identifyEndNodes = null)

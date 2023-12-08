@@ -81,12 +81,10 @@ public abstract class TestBase
     {
         foreach (var path in paths)
         {
-            try
+            if (File.Exists(path))
             {
                 return await GetData(path);
             }
-            catch
-            { }
         }
         throw new Exception("Unable to find data for the specified paths");
     }
