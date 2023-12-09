@@ -98,5 +98,26 @@ namespace MyAdventOfCode.Extensions
                 Swap(ref elements[recursionDepth], ref elements[i]);
             }
         }
+
+        public static TAccumulate Aggregate<TSource, TAccumulate>(
+            this IEnumerable<TSource> source,
+            TAccumulate seed,
+            Func<TAccumulate, TSource, int, TAccumulate> func)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            var accumulate = seed;
+            var i = 0;
+            foreach (var item in source)
+            {
+                accumulate = func(accumulate, item, i);
+                i++;
+            }
+            return accumulate;
+        }
     }
 }

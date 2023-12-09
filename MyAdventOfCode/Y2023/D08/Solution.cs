@@ -52,7 +52,7 @@ public partial class Solution : TestBase
         => await Invoke(Part.One, dataType, null, null, expected);
 
     private async Task Invoke_Part2(DataType dataType, int? expected = null)
-        => await Invoke(Part.One, dataType, (n) => n.Name.EndsWith('A'), (n) => n.Name.EndsWith('Z'), expected);
+        => await Invoke(Part.Two, dataType, (n) => n.Name.EndsWith('A'), (n) => n.Name.EndsWith('Z'), expected);
 
     private async Task Invoke(Part part, DataType dataType, Func<Node, bool> start, Func<Node, bool> end, int? expected = null)
     {
@@ -134,14 +134,14 @@ public partial class Solution : TestBase
         [GeneratedRegex("[^A-Z.]", RegexOptions.Compiled)]
         private static partial Regex NodeNameRegex();
 
-        public Dictionary<string, Node> Nodes { get; }
+        private readonly Dictionary<string, Node> _nodes;
         private readonly Node[] _startNodes;
         private readonly Node[] _endNodes;
         private readonly Node[] _current;
 
         public Network(Dictionary<string, Node> nodes, Func<Node, bool> identifyStartNodes = null, Func<Node, bool> identifyEndNodes = null)
         {
-            Nodes = nodes;
+            _nodes = nodes;
             _startNodes = FindMatchingNodes(identifyStartNodes, "AAA");
             _endNodes = FindMatchingNodes(identifyEndNodes, "ZZZ");
             _current = new Node[_startNodes.Length];
@@ -163,11 +163,9 @@ public partial class Solution : TestBase
         }
 
         private Node[] FindMatchingNodes(Func<Node, bool> condition, string defaultNodeName)
-        {
-            return condition != null
-                ? Nodes.Where(x => condition(x.Value)).Select(n => n.Value).ToArray()
-                : new[] { Nodes[defaultNodeName] };
-        }
+            => condition != null
+                ? _nodes.Where(x => condition(x.Value)).Select(n => n.Value).ToArray()
+                : new[] { _nodes[defaultNodeName] };
 
         public static Network Parse(string[] data, Func<Node, bool> identifyStartNodes = null, Func<Node, bool> identifyEndNodes = null)
         {
@@ -200,5 +198,4 @@ public partial class Solution : TestBase
             return new Network(nodes, identifyStartNodes, identifyEndNodes);
         }
     }
-
 }
