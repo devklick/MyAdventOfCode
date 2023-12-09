@@ -44,7 +44,7 @@ public partial class Solution : TestBase
     public override async Task Part2_Actual()
         => await Invoke_Part2(
             DataType.Actual,
-            0);
+            1057);
 
     private async Task Invoke_Part1(DataType dataType, int? expected = null)
         => await Invoke(Part.One, dataType, Direction.Forward, expected);
